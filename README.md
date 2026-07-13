@@ -1,39 +1,40 @@
-## Telegram messenger for Android
+## SimpleTG (Telegram Android fork)
 
-[Telegram](https://telegram.org) is a messaging app with a focus on speed and security. It’s superfast, simple and free.
-This repo contains the official source code for [Telegram App for Android](https://play.google.com/store/apps/details?id=org.telegram.messenger).
+Fork of the official [Telegram for Android](https://github.com/DrKLO/Telegram) source.
 
-## Creating your Telegram Application
+### Build setup
 
-We welcome all developers to use our API and source code to create applications on our platform.
-There are several things we require from **all developers** for the moment.
+1. Copy `local.properties.example` → `local.properties` and `keystore.properties.example` → `keystore.properties`.
+2. Generate a release keystore (skip if you already have `TMessagesProj/config/release.keystore`):
 
-1. [**Obtain your own api_id**](https://core.telegram.org/api/obtaining_api_id) for your application.
-2. Please **do not** use the name Telegram for your app — or make sure your users understand that it is unofficial.
-3. Kindly **do not** use our standard logo (white paper plane in a blue circle) as your app's logo.
-3. Please study our [**security guidelines**](https://core.telegram.org/mtproto/security_guidelines) and take good care of your users' data and privacy.
-4. Please remember to publish **your** code too in order to comply with the licences.
+```bash
+keytool -genkeypair -v \
+  -keystore TMessagesProj/config/release.keystore \
+  -alias simpletg \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -storepass YOUR_STORE_PASSWORD -keypass YOUR_KEY_PASSWORD \
+  -dname "CN=SimpleTG, OU=Mobile, O=notcgi, L=Unknown, ST=Unknown, C=US"
+```
 
-### API, Protocol documentation
+3. Fill `RELEASE_*` in `keystore.properties` (or `local.properties`).
+4. Get **your own** `api_id` / `api_hash` at https://my.telegram.org/apps and put them in `local.properties` as `APP_ID` / `APP_HASH`.
+5. Set `sdk.dir` in `local.properties` to your Android SDK path.
+6. Open the project in Android Studio (Open, do not Import) or build:
+
+```bash
+./gradlew :TMessagesProj_App:assembleAfatRelease
+```
+
+Do **not** publish using Telegram’s sample `APP_ID` — it will hit `API_ID_PUBLISHED_FLOOD`.
+
+Optional: create your own Firebase Android apps for `org.simpletg.messenger` / `org.simpletg.messenger.beta` and replace `google-services.json` files for push.
+
+### Upstream notes
 
 Telegram API manuals: https://core.telegram.org/api
 
 MTproto protocol manuals: https://core.telegram.org/mtproto
 
-### Compilation Guide
-
-**Note**: In order to support [reproducible builds](https://core.telegram.org/reproducible-builds), this repo contains dummy release.keystore,  google-services.json and filled variables inside BuildVars.java. Before publishing your own APKs please make sure to replace all these files with your own.
-
-You will require Android Studio 3.4, Android NDK rev. 20 and Android SDK 8.1
-
-1. Download the Telegram source code from https://github.com/DrKLO/Telegram ( git clone https://github.com/DrKLO/Telegram.git )
-2. Copy your release.keystore into TMessagesProj/config
-3. Fill out RELEASE_KEY_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_STORE_PASSWORD in gradle.properties to access your  release.keystore
-4.  Go to https://console.firebase.google.com/, create two android apps with application IDs org.telegram.messenger and org.telegram.messenger.beta, turn on firebase messaging and download google-services.json, which should be copied to the same folder as TMessagesProj.
-5. Open the project in the Studio (note that it should be opened, NOT imported).
-6. Fill out values in TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java – there’s a link for each of the variables showing where and which data to obtain.
-7. You are ready to compile Telegram.
-
 ### Localization
 
-We moved all translations to https://translations.telegram.org/en/android/. Please use it.
+Translations: https://translations.telegram.org/en/android/

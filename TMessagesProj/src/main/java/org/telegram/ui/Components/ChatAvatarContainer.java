@@ -40,6 +40,7 @@ import androidx.core.content.ContextCompat;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.BotForumHelper;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.DialogObject;
@@ -185,6 +186,13 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
             StoriesUtilities.AvatarStoryParams params = new StoriesUtilities.AvatarStoryParams(true) {
                 @Override
                 public void openStory(long dialogId, Runnable onDone) {
+                    // Stories removed.
+                    if (onDone != null) {
+                        onDone.run();
+                    }
+                    if (true) {
+                        return;
+                    }
                     baseFragment.getOrCreateStoryViewer().open(getContext(), dialogId, (dialogId1, messageId, storyId, type, holder) -> {
                         holder.crossfadeToAvatarImage = holder.storyImage = imageReceiver;
                         holder.params = params;

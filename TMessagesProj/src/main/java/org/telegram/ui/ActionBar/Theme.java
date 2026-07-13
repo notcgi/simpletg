@@ -1986,7 +1986,7 @@ public class Theme {
             tempHSV[1] = MathUtils.clamp(tempHSV[1] + sat, 0, 1);
         }
         tempHSV[2] = MathUtils.clamp(tempHSV[2] + val, 0, 1);
-        return Color.HSVToColor(Color.alpha(color), tempHSV);
+        return toEinkGray(Color.HSVToColor(Color.alpha(color), tempHSV));
     }
 
     public static int percentSV(int color1, int color2, float satT, float valT) {
@@ -2011,6 +2011,29 @@ public class Theme {
         if (multiply == 1f)
             return color;
         return ColorUtils.setAlphaComponent(color, MathUtils.clamp((int) (Color.alpha(color) * multiply), 0, 0xFF));
+    }
+
+    /** When true, all theme colors are quantized to 16 grayscale levels for e-ink displays. */
+    public static final boolean EINK_MODE = true;
+    private static final int EINK_GRAY_LEVELS = 16;
+    private static final int EINK_GRAY_STEP = 255 / (EINK_GRAY_LEVELS - 1);
+
+    /**
+     * Converts an ARGB color to a 16-level grayscale value for e-ink displays.
+     * Alpha is preserved; RGB is set to the quantized luminance (BT.709).
+     */
+    public static int toEinkGray(int color) {
+        if (!EINK_MODE) {
+            return color;
+        }
+        int alpha = color >>> 24;
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
+        int luminance = (int) (0.299f * r + 0.587f * g + 0.114f * b);
+        int level = (luminance * (EINK_GRAY_LEVELS - 1) + 127) / 255;
+        int gray = level * EINK_GRAY_STEP;
+        return (alpha << 24) | (gray << 16) | (gray << 8) | gray;
     }
 
     public static int reverseBlendOver(float ax, int y, int z) {
@@ -2296,43 +2319,12 @@ public class Theme {
         }
 
         private void loadOverrideWallpaper(SharedPreferences sharedPreferences, ThemeAccent accent, String key) {
-            try {
-                String json = sharedPreferences.getString(key,  null);
-                if (TextUtils.isEmpty(json)) {
-                    return;
-                }
-                JSONObject object = new JSONObject(json);
-                OverrideWallpaperInfo wallpaperInfo = new OverrideWallpaperInfo();
-                wallpaperInfo.fileName = object.getString("wall");
-                wallpaperInfo.originalFileName = object.getString("owall");
-                wallpaperInfo.color = object.getInt("pColor");
-                wallpaperInfo.gradientColor1 = object.getInt("pGrColor");
-                wallpaperInfo.gradientColor2 = object.optInt("pGrColor2");
-                wallpaperInfo.gradientColor3 = object.optInt("pGrColor3");
-                wallpaperInfo.rotation = object.getInt("pGrAngle");
-                wallpaperInfo.slug = object.getString("wallSlug");
-                wallpaperInfo.isBlurred = object.getBoolean("wBlur");
-                wallpaperInfo.isMotion = object.getBoolean("wMotion");
-                wallpaperInfo.intensity = (float) object.getDouble("pIntensity");
-                wallpaperInfo.parentTheme = this;
-                wallpaperInfo.parentAccent = accent;
-                if (accent != null) {
-                    accent.overrideWallpaper = wallpaperInfo;
-                } else {
-                    overrideWallpaper = wallpaperInfo;
-                }
-                if (object.has("wallId")) {
-                    long id = object.getLong("wallId");
-                    if (id == 1000001) {
-                        wallpaperInfo.slug = DEFAULT_BACKGROUND_SLUG;
-                    }
-                }
-            } catch (Throwable e) {
-                FileLog.e(e);
-            }
+            // Chat backgrounds are forced solid white; do not restore saved wallpapers.
         }
 
         public void setOverrideWallpaper(OverrideWallpaperInfo info) {
+            // Force solid white chat backgrounds: never install custom/override wallpapers.
+            info = null;
             if (overrideWallpaper == info) {
                 return;
             }
@@ -2340,14 +2332,9 @@ public class Theme {
             if (overrideWallpaper != null) {
                 overrideWallpaper.delete();
             }
-            if (info != null) {
-                info.parentAccent = accent;
-                info.parentTheme = this;
-                info.save();
-            }
-            overrideWallpaper = info;
+            overrideWallpaper = null;
             if (accent != null) {
-                accent.overrideWallpaper = info;
+                accent.overrideWallpaper = null;
             }
         }
 
@@ -4961,7 +4948,7 @@ public class Theme {
                 oldEditorNew.commit();
             }
 
-            selectedAutoNightType = preferences.getInt("selectedAutoNightType", Build.VERSION.SDK_INT >= 29 ? AUTO_NIGHT_TYPE_SYSTEM : AUTO_NIGHT_TYPE_NONE);
+            selectedAutoNightType = AUTO_NIGHT_TYPE_NONE;
             autoNightScheduleByLocation = preferences.getBoolean("autoNightScheduleByLocation", false);
             autoNightBrighnessThreshold = preferences.getFloat("autoNightBrighnessThreshold", 0.25f);
             autoNightDayStartTime = preferences.getInt("autoNightDayStartTime", 22 * 60);
@@ -4986,47 +4973,19 @@ public class Theme {
             FileLog.e(e);
             throw new RuntimeException(e);
         }
-        if (applyingTheme == null) {
-            applyingTheme = defaultTheme;
-        } else {
-            currentDayTheme = applyingTheme;
-        }
+        selectedAutoNightType = AUTO_NIGHT_TYPE_NONE;
+        applyingTheme = defaultTheme;
+        currentDayTheme = defaultTheme;
 
+        // Chat backgrounds are forced to solid white; drop legacy wallpaper overrides.
         if (preferences.contains("overrideThemeWallpaper") || preferences.contains("selectedBackground2")) {
-            boolean override = preferences.getBoolean("overrideThemeWallpaper", false);
-            long id = preferences.getLong("selectedBackground2", 1000001);
-            if (id == -1 || override && id != -2 && id != 1000001) {
-                OverrideWallpaperInfo overrideWallpaper = new OverrideWallpaperInfo();
-                overrideWallpaper.color = preferences.getInt("selectedColor", 0);
-                overrideWallpaper.slug = preferences.getString("selectedBackgroundSlug", "");
-                if (id >= -100 && id <= -1 && overrideWallpaper.color != 0) {
-                    overrideWallpaper.slug = COLOR_BACKGROUND_SLUG;
-                    overrideWallpaper.fileName = "";
-                    overrideWallpaper.originalFileName = "";
-                } else {
-                    overrideWallpaper.fileName = "wallpaper.jpg";
-                    overrideWallpaper.originalFileName = "wallpaper_original.jpg";
-                }
-                overrideWallpaper.gradientColor1 = preferences.getInt("selectedGradientColor", 0);
-                overrideWallpaper.gradientColor2 = preferences.getInt("selectedGradientColor2", 0);
-                overrideWallpaper.gradientColor3 = preferences.getInt("selectedGradientColor3", 0);
-                overrideWallpaper.rotation = preferences.getInt("selectedGradientRotation", 45);
-                overrideWallpaper.isBlurred = preferences.getBoolean("selectedBackgroundBlurred", false);
-                overrideWallpaper.isMotion = preferences.getBoolean("selectedBackgroundMotion", false);
-                overrideWallpaper.intensity = preferences.getFloat("selectedIntensity", 0.5f);
-                currentDayTheme.setOverrideWallpaper(overrideWallpaper);
-                if (selectedAutoNightType != AUTO_NIGHT_TYPE_NONE) {
-                    currentNightTheme.setOverrideWallpaper(overrideWallpaper);
-                }
-            }
             preferences.edit().remove("overrideThemeWallpaper").remove("selectedBackground2").commit();
         }
-
-        int switchToTheme = needSwitchToTheme();
-        if (switchToTheme == 2) {
-            applyingTheme = currentNightTheme;
+        if (currentDayTheme != null) {
+            currentDayTheme.setOverrideWallpaper(null);
         }
-        applyTheme(applyingTheme, false, false, switchToTheme == 2);
+
+        applyTheme(applyingTheme, false, false, false);
         AndroidUtilities.runOnUIThread(Theme::checkAutoNightThemeConditions);
     }
 
@@ -5070,6 +5029,7 @@ public class Theme {
     private static Field BitmapDrawable_mColorFilter;
 
     public static void saveAutoNightThemeConfig() {
+        selectedAutoNightType = AUTO_NIGHT_TYPE_NONE;
         SharedPreferences.Editor editor = MessagesController.getGlobalMainSettings().edit();
         editor.putInt("selectedAutoNightType", selectedAutoNightType);
         editor.putBoolean("autoNightScheduleByLocation", autoNightScheduleByLocation);
@@ -6261,61 +6221,37 @@ public class Theme {
     }
 
     public static ThemeInfo applyThemeFile(File file, String themeName, TLRPC.TL_theme theme, boolean temporary) {
-        try {
-            if (!themeName.toLowerCase().endsWith(".attheme")) {
-                themeName += ".attheme";
-            }
-            if (temporary) {
-                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.goingToPreviewTheme);
-                ThemeInfo themeInfo = new ThemeInfo();
-                themeInfo.name = themeName;
-                themeInfo.info = theme;
-                themeInfo.pathToFile = file.getAbsolutePath();
-                themeInfo.account = UserConfig.selectedAccount;
-                applyThemeTemporary(themeInfo, false);
-                return themeInfo;
-            } else {
-                String key;
-                File finalFile;
-                if (theme != null) {
-                    key = "remote" + theme.id;
-                    finalFile = new File(ApplicationLoader.getFilesDirFixed(), key + ".attheme");
-                } else {
-                    key = themeName;
-                    finalFile = new File(ApplicationLoader.getFilesDirFixed(), key);
-                }
-                if (!AndroidUtilities.copyFile(file, finalFile)) {
-                    applyPreviousTheme();
-                    return null;
-                }
-
-                previousTheme = null;
-                hasPreviousTheme = false;
-                isApplyingAccent = false;
-
-                ThemeInfo themeInfo = themesDict.get(key);
-                if (themeInfo == null) {
-                    themeInfo = new ThemeInfo();
-                    themeInfo.name = themeName;
-                    themeInfo.account = UserConfig.selectedAccount;
-                    themes.add(themeInfo);
-                    otherThemes.add(themeInfo);
-                    sortThemes();
-                } else {
-                    themesDict.remove(key);
-                }
-                themeInfo.info = theme;
-                themeInfo.pathToFile = finalFile.getAbsolutePath();
-                themesDict.put(themeInfo.getKey(), themeInfo);
-                saveOtherThemes(true);
-
-                applyTheme(themeInfo, true, true, false);
-                return themeInfo;
-            }
-        } catch (Exception e) {
-            FileLog.e(e);
+        if (temporary) {
+            return null;
         }
-        return null;
+        applyTheme(getForcedLightTheme(), true, true, false);
+        return getForcedLightTheme();
+    }
+
+    private static ThemeInfo getForcedLightTheme() {
+        if (defaultTheme != null && !defaultTheme.isDark()) {
+            return defaultTheme;
+        }
+        ThemeInfo blue = themesDict != null ? themesDict.get("Blue") : null;
+        if (blue != null && !blue.isDark()) {
+            return blue;
+        }
+        if (themes != null) {
+            for (int a = 0, N = themes.size(); a < N; a++) {
+                ThemeInfo info = themes.get(a);
+                if (info.pathToFile == null && !info.isDark()) {
+                    return info;
+                }
+            }
+        }
+        return currentTheme != null && !currentTheme.isDark() ? currentTheme : blue;
+    }
+
+    private static ThemeInfo normalizeLightTheme(ThemeInfo themeInfo) {
+        if (themeInfo == null || themeInfo.isDark() || themeInfo.pathToFile != null) {
+            return getForcedLightTheme();
+        }
+        return themeInfo;
     }
 
     public static ThemeInfo getTheme(String key) {
@@ -6339,6 +6275,13 @@ public class Theme {
     }
 
     private static void applyTheme(ThemeInfo themeInfo, boolean save, boolean removeWallpaperOverride, final boolean nightTheme) {
+        if (nightTheme || themeInfo == null || themeInfo.isDark() || themeInfo.pathToFile != null) {
+            ThemeInfo lightTheme = getForcedLightTheme();
+            if (lightTheme != themeInfo) {
+                applyTheme(lightTheme, save, removeWallpaperOverride, false);
+                return;
+            }
+        }
         if (themeInfo == null) {
             return;
         }
@@ -6464,6 +6407,13 @@ public class Theme {
     }
 
     private static void applyThemeInBackground(ThemeInfo themeInfo, boolean save, boolean removeWallpaperOverride, final boolean nightTheme, Runnable onDone) {
+        if (nightTheme || themeInfo == null || themeInfo.isDark() || themeInfo.pathToFile != null) {
+            ThemeInfo lightTheme = getForcedLightTheme();
+            if (lightTheme != themeInfo) {
+                applyThemeInBackground(lightTheme, save, removeWallpaperOverride, false, onDone);
+                return;
+            }
+        }
         if (themeInfo == null) {
             if (onDone != null) {
                 onDone.run();
@@ -6755,7 +6705,7 @@ public class Theme {
 
         final float diffH = Math.min(abs(colorHsv[0] - baseHsv[0]), abs(colorHsv[0] - baseHsv[0] - 360f));
         if (diffH > 30f) {
-            return fallback;
+            return toEinkGray(fallback);
         }
 
         float dist = Math.min(1.5f * colorHsv[1] / baseHsv[1], 1f);
@@ -6778,7 +6728,7 @@ public class Theme {
             newColor = changeBrightness(newColor, fallbackAmount);
         }
 
-        return newColor;
+        return toEinkGray(newColor);
     }
 
     private static int changeBrightness(int color, float amount) {
@@ -6994,11 +6944,11 @@ public class Theme {
     }
 
     public static boolean isCurrentThemeNight() {
-        return currentTheme == currentNightTheme;
+        return false;
     }
 
     public static boolean isCurrentThemeDark() {
-        return currentTheme.isDark();
+        return false;
     }
 
     public static ThemeInfo getActiveTheme() {
@@ -7060,11 +7010,7 @@ public class Theme {
     };
 
     public static void setCurrentNightTheme(ThemeInfo theme) {
-        boolean apply = currentTheme == currentNightTheme;
-        currentNightTheme = theme;
-        if (apply) {
-            applyDayNightThemeMaybe(true);
-        }
+        currentNightTheme = getForcedLightTheme();
     }
 
     public static void checkAutoNightThemeConditions() {
@@ -7093,75 +7039,7 @@ public class Theme {
     }
 
     private static int needSwitchToTheme() {
-        if (selectedAutoNightType == AUTO_NIGHT_TYPE_SCHEDULED) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(System.currentTimeMillis());
-            int time = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE);
-            int timeStart;
-            int timeEnd;
-            if (autoNightScheduleByLocation) {
-                int day = calendar.get(Calendar.DAY_OF_MONTH);
-                if (autoNightLastSunCheckDay != day && autoNightLocationLatitude != 10000 && autoNightLocationLongitude != 10000) {
-                    int[] t = SunDate.calculateSunriseSunset(autoNightLocationLatitude, autoNightLocationLongitude);
-                    autoNightSunriseTime = t[0];
-                    autoNightSunsetTime = t[1];
-                    autoNightLastSunCheckDay = day;
-                    saveAutoNightThemeConfig();
-                }
-                timeStart = autoNightSunsetTime;
-                timeEnd = autoNightSunriseTime;
-            } else {
-                timeStart = autoNightDayStartTime;
-                timeEnd = autoNightDayEndTime;
-            }
-            if (timeStart < timeEnd) {
-                if (timeStart <= time && time <= timeEnd) {
-                    return 2;
-                } else {
-                    return 1;
-                }
-            } else {
-                if (timeStart <= time && time <= 24 * 60 || 0 <= time && time <= timeEnd) {
-                    return 2;
-                } else {
-                    return 1;
-                }
-            }
-        } else if (selectedAutoNightType == AUTO_NIGHT_TYPE_AUTOMATIC) {
-            if (lightSensor == null) {
-                sensorManager = (SensorManager) ApplicationLoader.applicationContext.getSystemService(Context.SENSOR_SERVICE);
-                lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-            }
-            if (!lightSensorRegistered && lightSensor != null && ambientSensorListener != null) {
-                sensorManager.registerListener(ambientSensorListener, lightSensor, 500000);
-                lightSensorRegistered = true;
-                if (BuildVars.LOGS_ENABLED) {
-                    FileLog.d("light sensor registered");
-                }
-            }
-            if (lastBrightnessValue <= autoNightBrighnessThreshold) {
-                if (!switchNightRunnableScheduled) {
-                    return 2;
-                }
-            } else {
-                if (!switchDayRunnableScheduled) {
-                    return 1;
-                }
-            }
-        } else if (selectedAutoNightType == AUTO_NIGHT_TYPE_SYSTEM) {
-            Configuration configuration = ApplicationLoader.applicationContext.getResources().getConfiguration();
-            int currentNightMode = configuration.uiMode & Configuration.UI_MODE_NIGHT_MASK;
-            switch (currentNightMode) {
-                case Configuration.UI_MODE_NIGHT_NO:
-                case Configuration.UI_MODE_NIGHT_UNDEFINED:
-                    return 1;
-                case Configuration.UI_MODE_NIGHT_YES:
-                    return 2;
-            }
-        } else if (selectedAutoNightType == AUTO_NIGHT_TYPE_NONE) {
-            return 1;
-        }
-        return 0;
+        return 1;
     }
 
     public static void setChangingWallpaper(boolean value) {
@@ -7175,60 +7053,23 @@ public class Theme {
         if (previousTheme != null || changingWallpaper) {
             return;
         }
-        if (!force && switchNightThemeDelay > 0) {
-            long newTime = SystemClock.elapsedRealtime();
-            long dt = newTime - lastDelayUpdateTime;
-            lastDelayUpdateTime = newTime;
-            switchNightThemeDelay -= dt;
-            if (switchNightThemeDelay > 0) {
-                return;
-            }
-        }
-        if (force) {
-            if (switchNightRunnableScheduled) {
-                switchNightRunnableScheduled = false;
-                AndroidUtilities.cancelRunOnUIThread(switchNightBrightnessRunnable);
-            }
-            if (switchDayRunnableScheduled) {
-                switchDayRunnableScheduled = false;
-                AndroidUtilities.cancelRunOnUIThread(switchDayBrightnessRunnable);
-            }
-        }
         cancelAutoNightThemeCallbacks();
-        int switchToTheme = needSwitchToTheme();
-        if (switchToTheme != 0) {
-            applyDayNightThemeMaybe(switchToTheme == 2);
-        }
-        if (force) {
-            lastThemeSwitchTime = 0;
-        }
+        selectedAutoNightType = AUTO_NIGHT_TYPE_NONE;
+        applyDayNightThemeMaybe(false);
     }
 
     public static void applyDayNightThemeMaybe(boolean night) {
-        if (previousTheme != null) {
+        if (previousTheme != null || night) {
             return;
         }
 
-        if (night) {
-            if (currentTheme != currentNightTheme && (currentTheme == null || currentNightTheme != null &&  currentTheme.isDark() != currentNightTheme.isDark())) {
-                isInNigthMode = true;
-                lastThemeSwitchTime = SystemClock.elapsedRealtime();
-                switchingNightTheme = true;
-                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, currentNightTheme, true, null, -1);
-                switchingNightTheme = false;
-            }
-        } else {
-            ThemeInfo dayTheme = currentDayTheme;
-            if (dayTheme != null && dayTheme.isDark() && selectedAutoNightType != AUTO_NIGHT_TYPE_NONE && defaultTheme != null) {
-                dayTheme = defaultTheme;
-            }
-            if (currentTheme != dayTheme && (currentTheme == null || dayTheme != null && currentTheme.isDark() != dayTheme.isDark())) {
-                isInNigthMode = false;
-                lastThemeSwitchTime = SystemClock.elapsedRealtime();
-                switchingNightTheme = true;
-                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, dayTheme, true, null, -1);
-                switchingNightTheme = false;
-            }
+        ThemeInfo dayTheme = getForcedLightTheme();
+        if (currentTheme != dayTheme && (currentTheme == null || currentTheme.isDark())) {
+            isInNigthMode = false;
+            lastThemeSwitchTime = SystemClock.elapsedRealtime();
+            switchingNightTheme = true;
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, dayTheme, true, null, -1);
+            switchingNightTheme = false;
         }
     }
 
@@ -7259,13 +7100,7 @@ public class Theme {
     }
 
     public static ThemeInfo createNewTheme(String name) {
-        ThemeInfo newTheme = new ThemeInfo();
-        newTheme.pathToFile = new File(ApplicationLoader.getFilesDirFixed(), "theme" + Utilities.random.nextLong() + ".attheme").getAbsolutePath();
-        newTheme.name = name;
-        themedWallpaperLink = getWallpaperUrl(currentTheme.overrideWallpaper);
-        newTheme.account = UserConfig.selectedAccount;
-        saveCurrentTheme(newTheme, true, true, false);
-        return newTheme;
+        return getForcedLightTheme();
     }
 
     private static String getWallpaperUrl(OverrideWallpaperInfo wallpaperInfo) {
@@ -9229,7 +9064,7 @@ public class Theme {
             }
         }
         Drawable drawable = wallpaperOverride != null ? wallpaperOverride : currentWallpaper;
-        boolean drawServiceGradient = (drawable instanceof MotionBackgroundDrawable || drawable instanceof BitmapDrawable) && SharedConfig.getDevicePerformanceClass() != SharedConfig.PERFORMANCE_CLASS_LOW && LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND);
+        boolean drawServiceGradient = !EINK_MODE && (drawable instanceof MotionBackgroundDrawable || drawable instanceof BitmapDrawable) && SharedConfig.getDevicePerformanceClass() != SharedConfig.PERFORMANCE_CLASS_LOW && LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND);
         if (drawServiceGradient) {
             Bitmap newBitmap = null;
             if (drawable instanceof MotionBackgroundDrawable) {
@@ -9475,7 +9310,7 @@ public class Theme {
         return drawable;
     }
 
-    public static int getDefaultColor(int key) {
+    private static int resolveDefaultColor(int key) {
         int value = defaultColors[key];
         if (value == 0) {
             if (isMyMessagesBubbles(key) || key == key_chats_menuTopShadow || key == key_chats_menuTopBackground || key == key_chats_menuTopShadowCats || key == key_chat_wallpaper_gradient_to2 || key == key_chat_wallpaper_gradient_to3) {
@@ -9484,6 +9319,10 @@ public class Theme {
             return 0xffff0000;
         }
         return value;
+    }
+
+    public static int getDefaultColor(int key) {
+        return toEinkGray(resolveDefaultColor(key));
     }
 
     public static boolean hasThemeKey(int key) {
@@ -9528,7 +9367,7 @@ public class Theme {
 
     public static int getColor(int key, ResourcesProvider provider) {
         if (provider != null) {
-            return provider.getColor(key);
+            return toEinkGray(provider.getColor(key));
         }
         return getColor(key);
     }
@@ -9541,7 +9380,7 @@ public class Theme {
         return getColor(key, isDefault, false);
     }
 
-    public static int getColor(int key, boolean[] isDefault, boolean ignoreAnimation) {
+    private static int resolveThemeColor(int key, boolean[] isDefault, boolean ignoreAnimation) {
         if (!ignoreAnimation && animatingColors != null) {
             int index = animatingColors.indexOfKey(key);
             if (index >= 0) {
@@ -9550,6 +9389,10 @@ public class Theme {
         }
         if (serviceBitmapShader != null && (key_chat_serviceText == key || key_chat_serviceLink == key || key_chat_serviceIcon == key
                 || key_chat_stickerReplyLine == key || key_chat_stickerReplyNameText == key || key_chat_stickerReplyMessageText == key)) {
+            return 0xffffffff;
+        }
+        if (key == key_chat_wallpaper || key == key_chat_wallpaper_gradient_to1 || key == key_chat_wallpaper_gradient_to2
+                || key == key_chat_wallpaper_gradient_to3 || key == key_chat_wallpaper_gradient_rotation) {
             return 0xffffffff;
         }
         if (currentTheme == defaultTheme) {
@@ -9569,7 +9412,7 @@ public class Theme {
                 } else if (key == key_chat_serviceBackgroundSelected) {
                     return serviceSelectedMessageColor;
                 }
-                return getDefaultColor(key);
+                return resolveDefaultColor(key);
             }
         }
         int index = currentColors.indexOfKey(key);
@@ -9591,7 +9434,7 @@ public class Theme {
             } else if (key == key_chat_serviceBackgroundSelected) {
                 return serviceSelectedMessageColor;
             }
-            return getDefaultColor(key);
+            return resolveDefaultColor(key);
         } else {
             color = currentColors.valueAt(index);
         }
@@ -9599,6 +9442,10 @@ public class Theme {
             color |= 0xff000000;
         }
         return color;
+    }
+
+    public static int getColor(int key, boolean[] isDefault, boolean ignoreAnimation) {
+        return toEinkGray(resolveThemeColor(key, isDefault, ignoreAnimation));
     }
 
     private static boolean isMyMessagesBubbles(int key) {
@@ -9937,233 +9784,13 @@ public class Theme {
             TLRPC.Document wallpaperDocument,
             boolean local
     ) {
-        BackgroundDrawableSettings settings = new BackgroundDrawableSettings();
-        settings.wallpaper = local ? null : wallpaper;
-        boolean overrideTheme = (!hasPreviousTheme || isApplyingAccent) && overrideWallpaper != null;
-        if (overrideWallpaper != null) {
-            settings.isWallpaperMotion = overrideWallpaper.isMotion;
-            settings.isPatternWallpaper = overrideWallpaper.color != 0 && !overrideWallpaper.isDefault() && !overrideWallpaper.isColor();
-        } else {
-            settings.isWallpaperMotion = currentTheme.isMotion;
-            settings.isPatternWallpaper = currentTheme.patternBgColor != 0;
-        }
-        if (!overrideTheme) {
-            int backgroundColor = defaultTheme ? 0 : currentColors.get(key_chat_wallpaper);
-            int gradientToColor3 = currentColors.get(key_chat_wallpaper_gradient_to3);
-            int gradientToColor2 = currentColors.get(key_chat_wallpaper_gradient_to2);
-            int gradientToColor1 = currentColors.get(key_chat_wallpaper_gradient_to1);
-
-            boolean bitmapCreated = false;
-            if (wallpaperFile != null && wallpaperFile.exists()) {
-                bitmapCreated = true;
-                try {
-                    if (backgroundColor != 0 && gradientToColor1 != 0 && gradientToColor2 != 0) {
-                        MotionBackgroundDrawable motionBackgroundDrawable = new MotionBackgroundDrawable(backgroundColor, gradientToColor1, gradientToColor2, gradientToColor3, false);
-                        BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inPreferredConfig = Bitmap.Config.ALPHA_8;
-                        Bitmap patternBitmap = BitmapFactory.decodeFile(wallpaperFile.getAbsolutePath(), options);
-                        if (patternBitmap != null && patternBitmap.getConfig() != Bitmap.Config.ALPHA_8) {
-                            Bitmap toRecycle = patternBitmap;
-                            patternBitmap = patternBitmap.copy(Bitmap.Config.ALPHA_8, false);
-                            toRecycle.recycle();
-                        }
-                        if (patternBitmap == null) {
-                            bitmapCreated = false;
-                        }
-                        motionBackgroundDrawable.setPatternBitmap(intensity, patternBitmap);
-                        motionBackgroundDrawable.setPatternColorFilter(motionBackgroundDrawable.getPatternColor());
-                        settings.wallpaper = motionBackgroundDrawable;
-                    } else {
-                        settings.wallpaper = Drawable.createFromPath(wallpaperFile.getAbsolutePath());
-                    }
-                    settings.isWallpaperMotion = wallpaperMotion;
-                    settings.isPatternWallpaper = true;
-                    settings.isCustomTheme = true;
-                } catch (Throwable e) {
-                    FileLog.e(e);
-                }
-            }
-            if (bitmapCreated) {
-
-            } else if (backgroundColor != 0) {
-                int rotation = currentColors.get(key_chat_wallpaper_gradient_rotation, -1);
-                if (rotation == -1) {
-                    rotation = 45;
-                }
-                if (gradientToColor1 != 0 && gradientToColor2 != 0) {
-                    MotionBackgroundDrawable motionBackgroundDrawable = new MotionBackgroundDrawable(backgroundColor, gradientToColor1, gradientToColor2, gradientToColor3, false);
-                    Bitmap patternBitmap = null;
-
-                    if (wallpaperFile != null) {
-                        final int w = Math.min(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y);
-                        final int h = Math.max(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y);
-
-                        if (wallpaperDocument != null) {
-                            File f = FileLoader.getInstance(UserConfig.selectedAccount).getPathToAttach(wallpaperDocument, true);
-                            patternBitmap = SvgHelper.getBitmap(f, w, h, false, SvgHelper.ScaleMode.ByWidth);
-                        } else {
-                            patternBitmap = SvgHelper.getBitmap(R.raw.default_pattern, w, h, Color.WHITE, 1f, SvgHelper.ScaleMode.ByWidth);
-                        }
-                        if (patternBitmap != null) {
-                            FileOutputStream stream = null;
-                            try {
-                                stream = new FileOutputStream(wallpaperFile);
-                                Bitmap bitmap = patternBitmap.copy(Bitmap.Config.ARGB_8888, true);
-                                bitmap.compress(Bitmap.CompressFormat.PNG, 90, stream);
-                                bitmap.recycle();
-                                stream.close();
-                            } catch (Exception e) {
-                                FileLog.e(e);
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                    motionBackgroundDrawable.setPatternBitmap(intensity, patternBitmap);
-                    motionBackgroundDrawable.setPhase(previousPhase);
-                    settings.wallpaper = motionBackgroundDrawable;
-                } else if (gradientToColor1 == 0 || gradientToColor1 == backgroundColor) {
-                    settings.wallpaper = new ColorDrawable(backgroundColor);
-                } else {
-                    final int[] colors = {backgroundColor, gradientToColor1};
-                    final BackgroundGradientDrawable.Orientation orientation = BackgroundGradientDrawable.getGradientOrientation(rotation);
-                    final BackgroundGradientDrawable backgroundGradientDrawable = new BackgroundGradientDrawable(orientation, colors);
-                    final BackgroundGradientDrawable.Listener listener = new BackgroundGradientDrawable.ListenerAdapter() {
-                        @Override
-                        public void onSizeReady(int width, int height) {
-                            final boolean isOrientationPortrait = AndroidUtilities.displaySize.x <= AndroidUtilities.displaySize.y;
-                            final boolean isGradientPortrait = width <= height;
-                            if (isOrientationPortrait == isGradientPortrait) {
-                                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didSetNewWallpapper);
-                            }
-                        }
-                    };
-                    backgroundGradientDisposable = backgroundGradientDrawable.startDithering(BackgroundGradientDrawable.Sizes.ofDeviceScreen(), listener, 100);
-                    settings.wallpaper = backgroundGradientDrawable;
-                }
-                settings.isCustomTheme = true;
-            } else if (themedWallpaperLink != null) {
-                try {
-                    File pathToWallpaper = new File(ApplicationLoader.getFilesDirFixed(), Utilities.MD5(themedWallpaperLink) + ".wp");
-                    Bitmap bitmap = loadScreenSizedBitmap(new FileInputStream(pathToWallpaper), 0);
-                    if (bitmap != null) {
-                        settings.wallpaper = new BitmapDrawable(bitmap);
-                        settings.themedWallpaper = settings.wallpaper;
-                        settings.isCustomTheme = true;
-                    }
-                } catch (Exception e) {
-                    FileLog.e(e);
-                }
-            } else if (themedWallpaperFileOffset > 0 && (currentTheme.pathToFile != null || currentTheme.assetName != null)) {
-                try {
-                    File file;
-                    if (currentTheme.assetName != null) {
-                        file = getAssetFile(currentTheme.assetName);
-                    } else {
-                        file = new File(currentTheme.pathToFile);
-                    }
-                    Bitmap bitmap = loadScreenSizedBitmap(new FileInputStream(file), themedWallpaperFileOffset);
-                    if (bitmap != null) {
-                        settings.wallpaper = settings.themedWallpaper = wallpaper = new BitmapDrawable(bitmap);
-                        wallpaper.setFilterBitmap(true);
-                        settings.isCustomTheme = true;
-                    }
-                } catch (Throwable e) {
-                    FileLog.e(e);
-                }
-            }
-        }
-        if (settings.wallpaper == null) {
-            int selectedColor = overrideWallpaper != null ? overrideWallpaper.color : 0;
-            try {
-                if (overrideWallpaper == null || overrideWallpaper.isDefault()) {
-                    settings.wallpaper = createDefaultWallpaper();
-                    settings.isCustomTheme = false;
-                } else if (!overrideWallpaper.isColor() || overrideWallpaper.gradientColor1 != 0) {
-                    if (selectedColor != 0 && (!isPatternWallpaper || overrideWallpaper.gradientColor2 != 0)) {
-                        if (overrideWallpaper.gradientColor1 != 0 && overrideWallpaper.gradientColor2 != 0) {
-                            MotionBackgroundDrawable motionBackgroundDrawable = new MotionBackgroundDrawable(overrideWallpaper.color, overrideWallpaper.gradientColor1, overrideWallpaper.gradientColor2, overrideWallpaper.gradientColor3, false);
-                            motionBackgroundDrawable.setPhase(previousPhase);
-                            if (settings.isPatternWallpaper) {
-                                File toFile = new File(ApplicationLoader.getFilesDirFixed(), overrideWallpaper.fileName);
-                                if (toFile.exists()) {
-                                    motionBackgroundDrawable.setPatternBitmap((int) (overrideWallpaper.intensity * 100), loadScreenSizedBitmap(new FileInputStream(toFile), 0));
-                                    settings.isCustomTheme = true;
-                                }
-                            }
-                            settings.wallpaper = motionBackgroundDrawable;
-                        } else if (settings.isPatternWallpaper) {
-                            File toFile = new File(ApplicationLoader.getFilesDirFixed(), overrideWallpaper.fileName);
-                            if (toFile.exists()) {
-                                Bitmap bitmap = loadScreenSizedBitmap(new FileInputStream(toFile), 0);
-                                if (bitmap != null) {
-                                    settings.wallpaper = new BitmapDrawable(bitmap);
-                                    settings.wallpaper.setFilterBitmap(true);
-                                    settings.isCustomTheme = true;
-                                }
-                            }
-                        } else if (overrideWallpaper.gradientColor1 != 0) {
-                            final int[] colors = {selectedColor, overrideWallpaper.gradientColor1};
-                            final BackgroundGradientDrawable.Orientation orientation = BackgroundGradientDrawable.getGradientOrientation(overrideWallpaper.rotation);
-                            final BackgroundGradientDrawable backgroundGradientDrawable = new BackgroundGradientDrawable(orientation, colors);
-                            final BackgroundGradientDrawable.Listener listener = new BackgroundGradientDrawable.ListenerAdapter() {
-                                @Override
-                                public void onSizeReady(int width, int height) {
-                                    final boolean isOrientationPortrait = AndroidUtilities.displaySize.x <= AndroidUtilities.displaySize.y;
-                                    final boolean isGradientPortrait = width <= height;
-                                    if (isOrientationPortrait == isGradientPortrait) {
-                                        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didSetNewWallpapper);
-                                    }
-                                }
-                            };
-                            backgroundGradientDisposable = backgroundGradientDrawable.startDithering(BackgroundGradientDrawable.Sizes.ofDeviceScreen(), listener, 100);
-                            settings.wallpaper = backgroundGradientDrawable;
-                        } else {
-                            settings.wallpaper = new ColorDrawable(selectedColor);
-                        }
-                    } else {
-                        File toFile = new File(ApplicationLoader.getFilesDirFixed(), overrideWallpaper.fileName);
-                        if (toFile.exists()) {
-                            Bitmap bitmap = loadScreenSizedBitmap(new FileInputStream(toFile), 0);
-                            if (bitmap != null) {
-                                settings.wallpaper = new BitmapDrawable(bitmap);
-                                settings.wallpaper.setFilterBitmap(true);
-                                settings.isCustomTheme = true;
-                            }
-                        }
-                        if (settings.wallpaper == null) {
-                            settings.wallpaper = createDefaultWallpaper();
-                            settings.isCustomTheme = false;
-                        }
-                    }
-                }
-            } catch (Throwable throwable) {
-                //ignore
-            }
-            if (settings.wallpaper == null) {
-                if (selectedColor == 0) {
-                    selectedColor = -2693905;
-                }
-                settings.wallpaper = new ColorDrawable(selectedColor);
-            }
-        }
-
-        if (!LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND) && settings.wallpaper instanceof MotionBackgroundDrawable) {
-            MotionBackgroundDrawable motionBackgroundDrawable = (MotionBackgroundDrawable) settings.wallpaper;
-            int w, h;
-            if (motionBackgroundDrawable.getPatternBitmap() == null) {
-                w = Math.min(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y);
-                h = Math.max(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y);
-            } else {
-                w = motionBackgroundDrawable.getPatternBitmap().getWidth();
-                h = motionBackgroundDrawable.getPatternBitmap().getHeight();
-            }
-            Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(bitmap);
-            settings.wallpaper.setBounds(0, 0, bitmap.getWidth(), bitmap.getHeight());
-            settings.wallpaper.draw(canvas);
-            settings.wallpaper = new BitmapDrawable(bitmap);
-        }
-        return settings;
+        // Always use solid white for chat backgrounds (ignore theme wallpapers / overrides).
+        BackgroundDrawableSettings forced = new BackgroundDrawableSettings();
+        forced.wallpaper = createSolidWhiteChatBackground();
+        forced.isWallpaperMotion = false;
+        forced.isPatternWallpaper = false;
+        forced.isCustomTheme = false;
+        return forced;
     }
 
     public static Drawable createDefaultWallpaper() {
@@ -10171,14 +9798,17 @@ public class Theme {
     }
 
     public static Drawable createDefaultWallpaper(int w, int h) {
-        MotionBackgroundDrawable motionBackgroundDrawable = new MotionBackgroundDrawable(0xffdbddbb, 0xff6ba587, 0xffd5d88d, 0xff88b884, w != 0);
-        if (w <= 0 || h <= 0) {
-            w = Math.min(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y);
-            h = Math.max(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y);
+        return createSolidWhiteChatBackground();
+    }
+
+    /** Forced solid white chat list background (no wallpaper / pattern / gradient). */
+    private static Drawable solidWhiteChatBackground;
+
+    public static Drawable createSolidWhiteChatBackground() {
+        if (solidWhiteChatBackground == null) {
+            solidWhiteChatBackground = new ColorDrawable(0xffffffff);
         }
-        motionBackgroundDrawable.setPatternBitmap(34, SvgHelper.getBitmap(R.raw.default_pattern, w, h, Color.BLACK, 1f, SvgHelper.ScaleMode.ByWidth));
-        motionBackgroundDrawable.setPatternColorFilter(motionBackgroundDrawable.getPatternColor());
-        return motionBackgroundDrawable;
+        return solidWhiteChatBackground;
     }
 
     private static Bitmap loadScreenSizedBitmap(FileInputStream stream, int offset) {
@@ -10389,28 +10019,18 @@ public class Theme {
     }
 
     public static Drawable getCachedWallpaperNonBlocking() {
-        if (themedWallpaper != null) {
-            return themedWallpaper;
-        } else {
-            return wallpaper;
-        }
+        return createSolidWhiteChatBackground();
     }
 
     public static boolean isWallpaperMotion() {
-        return isWallpaperMotion;
+        return false;
     }
 
     public static boolean isPatternWallpaper() {
-        String selectedBgSlug = getSelectedBackgroundSlug();
-        return isPatternWallpaper || "CJz3BZ6YGEYBAAAABboWp6SAv04".equals(selectedBgSlug) || "qeZWES8rGVIEAAAARfWlK1lnfiI".equals(selectedBgSlug);
+        return false;
     }
 
     public static BackgroundGradientDrawable getCurrentGradientWallpaper() {
-        if (currentTheme.overrideWallpaper != null && currentTheme.overrideWallpaper.color != 0 && currentTheme.overrideWallpaper.gradientColor1 != 0) {
-            final int[] colors = {currentTheme.overrideWallpaper.color, currentTheme.overrideWallpaper.gradientColor1};
-            final GradientDrawable.Orientation orientation = BackgroundGradientDrawable.getGradientOrientation(currentTheme.overrideWallpaper.rotation);
-            return new BackgroundGradientDrawable(orientation, colors);
-        }
         return null;
     }
 
@@ -10578,7 +10198,7 @@ public class Theme {
                                 getString("AutoNightModeOff", R.string.AutoNightModeOff),
                         getString("Settings", R.string.Settings),
                         Bulletin.DURATION_PROLONG,
-                        () -> fragment.presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_NIGHT))
+                        null
                     ).show();
                 } catch (Exception e) {
                     FileLog.e(e);
@@ -10601,7 +10221,7 @@ public class Theme {
                             getString("AutoNightModeOff", R.string.AutoNightModeOff),
                         getString("Settings", R.string.Settings),
                         Bulletin.DURATION_PROLONG,
-                        openSettings
+                        null
                     ).show();
                 } catch (Exception e) {
                     FileLog.e(e);

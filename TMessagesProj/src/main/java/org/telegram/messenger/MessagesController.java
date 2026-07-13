@@ -4035,8 +4035,9 @@ public class MessagesController extends BaseController implements NotificationCe
                 case "stories_posting": {
                     if (value.value instanceof TLRPC.TL_jsonString) {
                         TLRPC.TL_jsonString str = (TLRPC.TL_jsonString) value.value;
-                        if (!TextUtils.equals(str.value, storiesPosting)) {
-                            storiesPosting = str.value;
+                        String newValue = "disabled";
+                        if (!TextUtils.equals(newValue, storiesPosting)) {
+                            storiesPosting = newValue;
                             editor.putString("storiesPosting", storiesPosting);
                             changed = storiesChanged = true;
                         }
@@ -4046,8 +4047,9 @@ public class MessagesController extends BaseController implements NotificationCe
                 case "stories_entities": {
                     if (value.value instanceof TLRPC.TL_jsonString) {
                         TLRPC.TL_jsonString str = (TLRPC.TL_jsonString) value.value;
-                        if (!TextUtils.equals(str.value, storiesEntities)) {
-                            storiesEntities = str.value;
+                        String newValue = "disabled";
+                        if (!TextUtils.equals(newValue, storiesEntities)) {
+                            storiesEntities = newValue;
                             editor.putString("storiesEntities", storiesEntities);
                             changed = true;
                         }
@@ -18409,7 +18411,7 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
                 chatInfoToUpdate.add(update.participants);
             } else if (baseUpdate instanceof TL_stories.TL_updateStory) {
-                getStoriesController().processUpdate((TL_stories.TL_updateStory) baseUpdate);
+                // Stories removed: do not drive UX from story updates.
             } else if (baseUpdate instanceof TL_update.TL_updateUserStatus) {
                 interfaceUpdateMask |= UPDATE_MASK_STATUS;
                 if (updatesOnMainThread == null) {
@@ -19991,9 +19993,8 @@ public class MessagesController extends BaseController implements NotificationCe
                             }
                         }
                     } else if (baseUpdate instanceof TL_update.TL_updateSentStoryReaction) {
-                        TL_update.TL_updateSentStoryReaction updateReaction = (TL_update.TL_updateSentStoryReaction) baseUpdate;
-                        long dialogId = DialogObject.getPeerDialogId(updateReaction.peer);
-                        getStoriesController().updateStoryReaction(dialogId, updateReaction.story_id, updateReaction.reaction);
+                        // Stories removed.
+
                     } else if (baseUpdate instanceof TL_update.TL_updateChannelViewForumAsMessages) {
                         TL_update.TL_updateChannelViewForumAsMessages update = (TL_update.TL_updateChannelViewForumAsMessages) baseUpdate;
                         TLRPC.ChatFull chatFull = getChatFull(update.channel_id);
@@ -22742,42 +22743,15 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean storiesEnabled() {
-        switch (storiesPosting) {
-            case "premium":
-                return getUserConfig().isPremium();
-            case "enabled":
-                return true;
-            default:
-            case "disabled":
-                return false;
-        }
+        return false;
     }
 
     public boolean storyEntitiesAllowed() {
-        switch (storiesEntities) {
-            case "premium":
-                return getUserConfig().isPremium();
-            case "enabled":
-                return true;
-            default:
-            case "disabled":
-                return false;
-        }
+        return false;
     }
 
     public boolean storyEntitiesAllowed(TLRPC.User user) {
-        if (user != null && user.id == storiesChangelogUserId) {
-            return true;
-        }
-        switch (storiesEntities) {
-            case "premium":
-                return user != null && user.premium;
-            case "enabled":
-                return true;
-            default:
-            case "disabled":
-                return false;
-        }
+        return false;
     }
 
     public static class ChannelRecommendations {

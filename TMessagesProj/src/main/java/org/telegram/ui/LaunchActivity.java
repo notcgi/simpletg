@@ -2986,18 +2986,10 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 }
             }
 
-            if (push_story_id > 0) {
-                NotificationsController.getInstance(intentAccount[0]).processSeenStoryReactions(UserConfig.getInstance(intentAccount[0]).getClientUserId(), push_story_id);
-                long storyDialogId = UserConfig.getInstance(currentAccount).getClientUserId();
-                if (push_user_id != 0) {
-                    storyDialogId = push_user_id;
-                } else if (push_chat_id != 0) {
-                    storyDialogId = -push_chat_id;
-                }
-                openStory(storyDialogId, push_story_id, storyDialogId == UserConfig.getInstance(currentAccount).getClientUserId());
-            } else if (push_story_dids != null) {
-                NotificationCenter.getInstance(intentAccount[0]).postNotificationName(NotificationCenter.closeChats);
-                openStories(push_story_dids, true);
+            if (false && push_story_id > 0) {
+                // Stories removed.
+            } else if (false && push_story_dids != null) {
+                // Stories removed.
             } else if (push_user_id != 0) {
                 if (audioCallUser || videoCallUser) {
                     if (needCallAlert) {
@@ -4248,7 +4240,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 }
                 if (!LaunchActivity.this.isFinishing()) {
                     boolean hideProgressDialog = true;
-                    if (liveStory && peerId != null) {
+                    if (false && liveStory && peerId != null) {
                         hideProgressDialog = false;
                         MessagesController.getInstance(currentAccount).getStoriesController().resolveLiveStoryLink(peerId, storyItem -> {
                             try {
@@ -4277,7 +4269,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                 storyViewer.open(this, storyItem, null);
                             }
                         });
-                    } else if (storyId != 0 && peerId != null) {
+                    } else if (false && storyId != 0 && peerId != null) {
                         hideProgressDialog = false;
                         MessagesController.getInstance(currentAccount).getStoriesController().resolveStoryLink(peerId, storyId, storyItem -> {
                             try {
@@ -4306,7 +4298,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                 storyViewer.open(this, storyItem, null);
                             }
                         });
-                    } else if (storyAlbumId != 0 && peerId != null) {
+                    } else if (false && storyAlbumId != 0 && peerId != null) {
                         hideProgressDialog = false;
                         MessagesController.getInstance(currentAccount).getStoriesController().resolveStoryAlbumLink(peerId, storyAlbumId, storyAlbum -> {
                             try {
@@ -6151,6 +6143,11 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
 
     @Override
     public boolean didSelectStories(DialogsActivity dialogsFragment) {
+        // Stories removed.
+        return false;
+    }
+
+    private boolean didSelectStoriesRemoved(DialogsActivity dialogsFragment) {
         StoryEntry entry = null;
         if (photoPathsArray != null && !photoPathsArray.isEmpty()) {
             entry = StoryEntry.fromMedia(photoPathsArray);
@@ -7888,12 +7885,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     private void openThemeAccentPreview(TLRPC.TL_theme t, TLRPC.TL_wallPaper wallPaper, Theme.ThemeInfo info) {
-        int lastId = info.lastAccentId;
-        Theme.ThemeAccent accent = info.createNewAccent(t, currentAccount);
-        info.prevAccentId = info.currentAccentId;
-        info.setCurrentAccentId(accent.id);
-        accent.pattern = wallPaper;
-        presentFragment(new ThemePreviewActivity(info, lastId != info.lastAccentId, ThemePreviewActivity.SCREEN_TYPE_PREVIEW, false, false));
+        onThemeLoadFinish();
     }
 
     private void onThemeLoadFinish() {
@@ -8877,6 +8869,10 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     private void openStory(long dialogId, final int storyId, boolean openViews) {
+        // Stories removed.
+        if (true) {
+            return;
+        }
         StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
         TL_stories.PeerStories peerStories = storiesController.getStories(dialogId);
         TL_stories.StoryItem storyItem = null;
@@ -8991,6 +8987,10 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     private void openStories(long[] dialogIds, boolean requestWhenNeeded) {
+        // Stories removed.
+        if (true) {
+            return;
+        }
         boolean onlyArchived = true;
         for (int i = 0; i < dialogIds.length; ++i) {
             TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogIds[i]);

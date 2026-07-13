@@ -1058,9 +1058,7 @@ public class LinkManager {
 
         if ("appearance".equalsIgnoreCase(first)) {
             if ("themes".equalsIgnoreCase(second) || "theme".equalsIgnoreCase(second)) {
-                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_THEMES_BROWSER));
-                if ("create".equalsIgnoreCase(third))
-                    scrollTo("createNewThemeRow");
+                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC));
                 return true;
             }
             if (!TextUtils.isEmpty(third) && ("wallpaper".equalsIgnoreCase(second) || "wallpapers".equalsIgnoreCase(second))) {
@@ -1124,7 +1122,7 @@ public class LinkManager {
 //            if ("night-mode".equalsIgnoreCase(second) || "dark-mode".equalsIgnoreCase(second) || "dark".equalsIgnoreCase(second) || "night".equalsIgnoreCase(second))
 //                scrollTo("nightmode?") // TODO
             if ("auto-night-mode".equalsIgnoreCase(second))
-                scrollTo("nightThemeRow");
+                scrollTo("textSizeHeaderRow");
             if ("text-size".equalsIgnoreCase(second))
                 scrollTo("textSizeRow");
             if ("message-corners".equalsIgnoreCase(second))

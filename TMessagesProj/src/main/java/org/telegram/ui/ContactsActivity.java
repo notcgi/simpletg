@@ -932,22 +932,6 @@ public class ContactsActivity extends BaseFragment implements FactorAnimator.Tar
             }
         });
 
-        if (!createSecretChat && !returnAsResult) {
-            floatingButton = new FragmentFloatingButton(context, resourceProvider);
-            contentView.addView(floatingButton, FragmentFloatingButton.createDefaultLayoutParams());
-            floatingButton.setOnClickListener(v -> {
-                if (MessagesController.getInstance(currentAccount).isFrozen()) {
-                    AccountFrozenAlert.show(currentAccount);
-                    return;
-                }
-                new NewContactBottomSheet(ContactsActivity.this, getContext()).show();
-            });
-
-            floatingButton.setAnimation(R.raw.write_contacts_fab_icon, 44);
-            floatingButton.imageView.getAnimatedDrawable().setCurrentFrame(floatingButton.imageView.getAnimatedDrawable().getFramesCount() - 1);
-            floatingButton.setContentDescription(getString(R.string.CreateNewContact));
-        }
-
         if (initialSearchString != null) {
             actionBar.openSearchField(initialSearchString, false);
             initialSearchString = null;

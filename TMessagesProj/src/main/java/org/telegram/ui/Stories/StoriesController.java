@@ -188,13 +188,14 @@ public class StoriesController {
     }
 
     public void loadAllStories() {
-        if (!firstLoad) {
-            loadStories();
-            loadStoriesRead();
-        }
+        // Stories removed.
     }
 
     private void loadStoriesRead() {
+        // Stories removed.
+        if (true) {
+            return;
+        }
         if (storiesReadLoaded) {
             return;
         }
@@ -249,20 +250,7 @@ public class StoriesController {
     }
 
     public boolean hasStories(long dialogId) {
-        if (dialogId == 0) {
-            return false;
-        }
-        if (hasUploadingStories(dialogId)) {
-            return true;
-        }
-        if (isLastUploadingFailed(dialogId)) {
-            return true;
-        }
-        TL_stories.PeerStories stories = allStoriesMap.get(dialogId);
-        if (stories == null) {
-            stories = getStoriesFromFullPeer(dialogId);
-        }
-        return stories != null && !stories.stories.isEmpty();
+        return false;
     }
 
     public TL_stories.PeerStories getStoriesFromFullPeer(long dialogId) {
@@ -282,10 +270,14 @@ public class StoriesController {
     }
 
     public boolean hasStories() {
-        return (dialogListStories != null && dialogListStories.size() > 0) || hasSelfStories();
+        return false;
     }
 
     public void loadStories() {
+        // Stories removed.
+        if (true) {
+            return;
+        }
         if (firstLoad) {
             loadingFromDatabase = true;
             storiesStorage.getAllStories(allStories -> {
@@ -307,9 +299,7 @@ public class StoriesController {
     }
 
     public void loadHiddenStories() {
-        if (hasMoreHidden) {
-            loadFromServer(true);
-        }
+        // Stories removed.
     }
 
     public void toggleHidden(long dialogId, boolean hide, boolean request, boolean notify) {
@@ -607,6 +597,10 @@ public class StoriesController {
     }
 
     public void uploadStory(StoryEntry entry, boolean count) {
+        // Stories removed.
+        if (true) {
+            return;
+        }
         UploadingStory uploadingStory = new UploadingStory(entry);
         if (count) {
             long dialogId = uploadingStory.dialogId;
@@ -667,6 +661,10 @@ public class StoriesController {
     }
 
     public void putUploadingDrafts(ArrayList<StoryEntry> entries) {
+        // Stories removed.
+        if (true) {
+            return;
+        }
         for (StoryEntry entry : entries) {
             UploadingStory uploadingStory = new UploadingStory(entry);
             long dialogId = uploadingStory.dialogId;
@@ -797,6 +795,10 @@ public class StoriesController {
     }
 
     public void processUpdate(TL_stories.TL_updateStory updateStory) {
+        // Stories removed: ignore story updates for product UX.
+        if (true) {
+            return;
+        }
         //stage queue
         if (updateStory.story == null) {
             return;
@@ -1071,6 +1073,10 @@ public class StoriesController {
     }
 
     public boolean hasSelfStories() {
+        return false;
+    }
+
+    private boolean hasSelfStoriesRemoved() {
         long clientUserId = UserConfig.getInstance(currentAccount).clientUserId;
         TL_stories.PeerStories storyItem = allStoriesMap.get(clientUserId);
         if (storyItem != null && !storyItem.stories.isEmpty()) {
@@ -1554,13 +1560,14 @@ public class StoriesController {
     }
 
     public void loadNextStories(boolean hidden) {
-        if (hidden ? hasMoreHidden : hasMore) {
-            loadFromServer(hidden);
-        }
+        // Stories removed.
     }
 
     public void fillMessagesWithStories(LongSparseArray<ArrayList<MessageObject>> messagesWithUnknownStories, Runnable callback, int classGuid, Timer timer) {
-        storiesStorage.fillMessagesWithStories(messagesWithUnknownStories, callback, classGuid, timer);
+        // Stories removed: do not hydrate story media for chat UX.
+        if (callback != null) {
+            callback.run();
+        }
     }
 
     LongSparseArray<TL_stories.StoryItem> resolvedStories = new LongSparseArray<>();
@@ -1886,6 +1893,10 @@ public class StoriesController {
     }
 
     public void updateStoriesFromFullPeer(long dialogId, TL_stories.PeerStories stories) {
+        // Stories removed.
+        if (true) {
+            return;
+        }
         if (stories == null) {
             return;
         }
@@ -4733,10 +4744,7 @@ public class StoriesController {
     }
 
     public boolean canPostStories(TLRPC.Chat chat) {
-        if (chat == null || !ChatObject.isBoostSupported(chat)) {
-            return false;
-        }
-        return chat.creator || chat.admin_rights != null && chat.admin_rights.post_stories;
+        return false;
     }
 
     public boolean canEditStories(TLRPC.Chat chat) {
@@ -4747,18 +4755,6 @@ public class StoriesController {
     }
 
     public boolean canPostStories(long dialogId) {
-        if (dialogId < 0) {
-            TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
-            if (chat == null || !ChatObject.isBoostSupported(chat)) {
-                return false;
-            }
-            return chat.creator || chat.admin_rights != null && chat.admin_rights.post_stories;
-        } else if (dialogId > 0) {
-            TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
-            if (user != null && user.bot && user.bot_can_edit) {
-                return true;
-            }
-        }
         return false;
     }
 

@@ -21,7 +21,6 @@ import android.icu.number.Scale;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
@@ -158,25 +157,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
 
         avatarDrawable = new AvatarDrawable();
 
-        avatarImageView = new BackupImageView(context) {
-            @Override
-            protected void onDraw(Canvas canvas) {
-                if (storiable) {
-                    storyParams.originalAvatarRect.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
-                    StoriesUtilities.drawAvatarWithStory(dialogId, canvas, imageReceiver, storyParams);
-                } else {
-                    super.onDraw(canvas);
-                }
-            }
-
-            @Override
-            public boolean onTouchEvent(MotionEvent event) {
-                if (storyParams.checkOnTouchEvent(event, this)) {
-                    return true;
-                }
-                return super.onTouchEvent(event);
-            }
-        };
+        avatarImageView = new BackupImageView(context);
         avatarImageView.setRoundRadius(dp(24));
         addView(avatarImageView, LayoutHelper.createFrame(46, 46, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 0 : 7 + padding, 6, LocaleController.isRTL ? 7 + padding : 0, 0));
         setClipChildren(false);

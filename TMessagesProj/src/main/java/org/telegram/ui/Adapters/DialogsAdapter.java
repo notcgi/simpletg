@@ -1169,11 +1169,9 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
 
     @Override
     public void openStory(DialogCell dialogCell, Runnable onDone) {
-        MessagesController messagesController = MessagesController.getInstance(currentAccount);
-        if (MessagesController.getInstance(currentAccount).getStoriesController().hasStories(dialogCell.getDialogId())) {
-            parentFragment.getOrCreateStoryViewer().doOnAnimationReady(onDone);
-            parentFragment.getOrCreateStoryViewer().open(parentFragment.getContext(), dialogCell.getDialogId(), StoriesListPlaceProvider.of((RecyclerListView) dialogCell.getParent()));
-            return;
+        // Stories removed.
+        if (onDone != null) {
+            onDone.run();
         }
     }
 
@@ -1184,20 +1182,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
 
     @Override
     public void openHiddenStories() {
-        StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();
-        if (storiesController.getHiddenList().isEmpty()) {
-            return;
-        }
-        boolean unreadOnly = storiesController.getUnreadState(DialogObject.getPeerDialogId(storiesController.getHiddenList().get(0).peer)) != StoriesController.STATE_READ;
-        ArrayList<Long> peerIds = new ArrayList<>();
-        for (int i = 0; i < storiesController.getHiddenList().size(); i++) {
-            long dialogId = DialogObject.getPeerDialogId(storiesController.getHiddenList().get(i).peer);
-            if (!unreadOnly || storiesController.getUnreadState(dialogId) != StoriesController.STATE_READ) {
-                peerIds.add(dialogId);
-            }
-        }
-
-        parentFragment.getOrCreateStoryViewer().open(mContext, null, peerIds, 0, null, null, StoriesListPlaceProvider.of(recyclerListView, true), false);
+        // Stories removed.
     }
 
     public void setIsTransitionSupport() {

@@ -18505,10 +18505,7 @@ public class ChatActivity extends BaseFragment implements
         }
 
         protected boolean getNewDrawableMotion() {
-            if (themeDelegate.wallpaper == null) {
-                return super.getNewDrawableMotion();
-            }
-            return themeDelegate.wallpaper.settings != null && themeDelegate.wallpaper.settings.motion;
+            return false;
         }
 
         @Override
@@ -36792,7 +36789,7 @@ public class ChatActivity extends BaseFragment implements
                         TLRPC.VideoSize videoSize = null;
                         TLRPC.VideoSize emojiMarkup = null;
                         if (cell.getMessageObject().type == MessageObject.TYPE_STORY_MENTION) {
-                            getOrCreateStoryViewer().openFor(ChatActivity.this, chatListView, cell);
+                            // Stories removed.
                             return;
                         }
                         if (cell.getMessageObject().type == MessageObject.TYPE_ACTION_WALLPAPER) {
@@ -40394,16 +40391,7 @@ public class ChatActivity extends BaseFragment implements
             MessageObject messageObject = cell.getMessageObject();
             if (messageObject == null) return;
             if (messageObject.isReplyToStory() && messageObject.messageOwner.replyStory != null) {
-                if (messageObject.messageOwner.replyStory instanceof TL_stories.TL_storyItemDeleted) {
-                    BulletinFactory.of(ChatActivity.this).createSimpleBulletin(R.raw.story_bomb1, LocaleController.getString(R.string.StoryNotFound)).show();
-                } else {
-                    TL_stories.StoryItem storyItem = messageObject.messageOwner.replyStory;
-                    storyItem.dialogId = DialogObject.getPeerDialogId(messageObject.messageOwner.reply_to.peer);
-                    storyItem.messageId = messageObject.getId();
-                    storyItem.messageType = 3;
-                    StoriesUtilities.applyViewedUser(storyItem, currentUser);
-                    getOrCreateStoryViewer().open(getContext(), storyItem, StoriesListPlaceProvider.of(chatListView));
-                }
+                // Stories removed: do not open story viewer from reply.
             } else {
                 String quote = null;
                 int quoteOffset = -1;
@@ -40883,6 +40871,10 @@ public class ChatActivity extends BaseFragment implements
         public void didPressImage(ChatMessageCell cell, float x, float y, boolean fullPreview) {
             MessageObject message = cell.getMessageObject();
             if (message.type == MessageObject.TYPE_STORY) {
+                // Stories removed.
+                return;
+            }
+            if (false && message.type == MessageObject.TYPE_STORY) {
                 if (message.messageOwner.media.storyItem != null && !(message.messageOwner.media.storyItem instanceof TL_stories.TL_storyItemDeleted)) {
                     TL_stories.StoryItem storyItem = message.messageOwner.media.storyItem;
                     storyItem.dialogId = DialogObject.getPeerDialogId(message.messageOwner.media.peer);
@@ -41313,6 +41305,10 @@ public class ChatActivity extends BaseFragment implements
                     if (webPage.attributes != null) {
                         for (int i = 0; i < webPage.attributes.size(); ++i) {
                             if (webPage.attributes.get(i) instanceof TLRPC.TL_webPageAttributeStory) {
+                                // Stories removed.
+                                return;
+                            }
+                            if (false && webPage.attributes.get(i) instanceof TLRPC.TL_webPageAttributeStory) {
                                 TLRPC.TL_webPageAttributeStory story = (TLRPC.TL_webPageAttributeStory) webPage.attributes.get(i);
                                 if (story.storyItem != null) {
                                     story.storyItem.dialogId = DialogObject.getPeerDialogId(story.peer);
@@ -42760,27 +42756,7 @@ public class ChatActivity extends BaseFragment implements
     }
 
     private void showChatThemeBottomSheet() {
-        if (currentChat != null) {
-            if (ChatObject.isMegagroup(currentChat)) {
-                if (ChatObject.hasAdminRights(currentChat)) {
-                    presentFragment(new GroupColorActivity(getDialogId()).setOnApplied(ChatActivity.this));
-                }
-            } else {
-                if (ChatObject.canChangeChatInfo(currentChat)) {
-                    presentFragment(new ChannelColorActivity(getDialogId()).setOnApplied(ChatActivity.this));
-                }
-            }
-            return;
-        }
-        chatThemeBottomSheet = new ChatThemeBottomSheet(ChatActivity.this, themeDelegate);
-        chatListView.setOnInterceptTouchListener(event -> true);
-        setChildrenEnabled(contentView, false);
-        showDialog(chatThemeBottomSheet, dialogInterface -> {
-            chatThemeBottomSheet = null;
-            chatListView.setOnInterceptTouchListener(null);
-            setChildrenEnabled(contentView, true);
-            ChatThemeController.getInstance(currentAccount).clearWallpaperThumbImages();
-        });
+        return;
     }
 
     private void setChildrenEnabled(View view, boolean isEnabled) {
@@ -43002,10 +42978,7 @@ public class ChatActivity extends BaseFragment implements
         }
 
         public boolean isThemeChangeAvailable(boolean canEdit) {
-            return currentEncryptedChat == null && (
-                (!canEdit /*|| currentChat != null && ChatObject.isChannelAndNotMegaGroup(currentChat) && ChatObject.canChangeChatInfo(currentChat)*/) ||
-                currentChat == null && currentUser != null && !currentUser.bot
-            );
+            return false;
         }
 
         public EmojiThemes getCurrentTheme() {
@@ -43014,12 +42987,12 @@ public class ChatActivity extends BaseFragment implements
 
         @Override
         public Drawable getWallpaperDrawable() {
-            return backgroundDrawable != null ? backgroundDrawable : Theme.getCachedWallpaperNonBlocking();
+            return Theme.createSolidWhiteChatBackground();
         }
 
         @Override
         public boolean isWallpaperMotion() {
-            return chatTheme != null ? false : Theme.isWallpaperMotion();
+            return false;
         }
 
         public void setCurrentTheme(final EmojiThemes chatTheme, TLRPC.WallPaper newWallpaper, boolean animated, Boolean forceDark) {
@@ -43656,13 +43629,7 @@ public class ChatActivity extends BaseFragment implements
         if (contentView == null || parentThemeDelegate != null) {
             return;
         }
-        if (themeDelegate.backgroundDrawable != null && contentView.getBackgroundImage() != null) {
-            return;
-        }
-        if (contentView.getBackgroundImage() == null || AndroidUtilities.isTablet()) {
-            final Drawable drawable = Theme.getCachedWallpaper();
-            contentView.setBackgroundImage(drawable, Theme.isWallpaperMotion());
-        }
+        contentView.setBackgroundImage(Theme.createSolidWhiteChatBackground(), false);
     }
 
     private void updateBotHelpCellClick(BotHelpCell cell) {

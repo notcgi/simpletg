@@ -158,12 +158,12 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     public static final int SENT_STATE_PROGRESS = 0;
     public static final int SENT_STATE_SENT = 1;
     public static final int SENT_STATE_READ = 2;
-    public boolean drawAvatar = true;
+    public boolean drawAvatar = false;
     public boolean drawMonoforumAvatar = false;
     private boolean isShareToStoryCell;
     public ShareDialogCell.RepostStoryDrawable repostStoryDrawable;
     public int avatarStart = 11;
-    public int messagePaddingStart = 72;
+    public int messagePaddingStart = 16;
     public int heightDefault = 70;
     public int heightThreeLines = 76;
     public int addHeightForTags = 3;
@@ -296,6 +296,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     public void setIsShareToStoryCell() {
         repostStoryDrawable = new ShareDialogCell.RepostStoryDrawable(getContext(), this, R.drawable.forward_to_stories, resourcesProvider);
         isShareToStoryCell = true;
+        drawAvatar = true;
+        messagePaddingStart = 72;
     }
 
     public float collapseOffset = 0;
@@ -1000,7 +1002,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             emojiStatusView.layout(0, 0, dp(22), dp(22));
         }
         if (checkBox != null) {
-            int paddingStart = dp(messagePaddingStart - (useForceThreeLines || SharedConfig.useThreeLinesLayout ? 29 : 27));
+            int paddingStart = drawAvatar
+                    ? dp(messagePaddingStart - (useForceThreeLines || SharedConfig.useThreeLinesLayout ? 29 : 27))
+                    : dp(13);
             int x, y;
             if (inPreviewMode) {
                 x = dp(8);//LocaleController.isRTL ? (right - left) - paddingStart : paddingStart;
@@ -4552,13 +4556,13 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             canvas.restore();
         }
 
-        if (avatarImage.getVisible()) {
+        if (drawAvatar && avatarImage.getVisible()) {
             if (drawAvatarOverlays(canvas)) {
                 needInvalidate = true;
             }
         }
 
-        if (rightFragmentOpenedProgress > 0 && currentDialogFolderId == 0) {
+        if (drawAvatar && rightFragmentOpenedProgress > 0 && currentDialogFolderId == 0) {
             final boolean drawCounterMuted = isCounterMuted();
             int countLeftLocal = (int) (storyParams.originalAvatarRect.left + storyParams.originalAvatarRect.width() - countWidth - dp(5f));
             int countLeftOld =  (int) (storyParams.originalAvatarRect.left + storyParams.originalAvatarRect.width() - countWidthOld - dp(5f));
@@ -5866,7 +5870,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        if (rightFragmentOpenedProgress == 0 && !isTopic && !isShareToStoryCell && storyParams.checkOnTouchEvent(ev, this)) {
+        if (drawAvatar && rightFragmentOpenedProgress == 0 && !isTopic && !isShareToStoryCell && storyParams.checkOnTouchEvent(ev, this)) {
             return true;
         }
         return super.onInterceptTouchEvent(ev);
@@ -5874,7 +5878,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (!isTopic && !isShareToStoryCell && ev.getAction() == MotionEvent.ACTION_UP || ev.getAction() == MotionEvent.ACTION_CANCEL) {
+        if (drawAvatar && (!isTopic && !isShareToStoryCell && ev.getAction() == MotionEvent.ACTION_UP || ev.getAction() == MotionEvent.ACTION_CANCEL)) {
             storyParams.checkOnTouchEvent(ev, this);
         }
         return super.dispatchTouchEvent(ev);
@@ -5882,7 +5886,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (rightFragmentOpenedProgress == 0 && !isTopic && !isShareToStoryCell && storyParams.checkOnTouchEvent(event, this)) {
+        if (drawAvatar && rightFragmentOpenedProgress == 0 && !isTopic && !isShareToStoryCell && storyParams.checkOnTouchEvent(event, this)) {
             return true;
         }
         if (delegate == null || delegate.canClickButtonInside()) {

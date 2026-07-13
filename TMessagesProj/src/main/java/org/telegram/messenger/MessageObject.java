@@ -6632,10 +6632,10 @@ public class MessageObject {
             } else if (getMedia(messageOwner) instanceof TLRPC.TL_messageMediaInvoice) {
                 type = TYPE_TEXT;
             } else if (getMedia(messageOwner) instanceof TLRPC.TL_messageMediaStory) {
-                type = getMedia(messageOwner).via_mention ? TYPE_STORY_MENTION : TYPE_STORY;
-                if (type == TYPE_STORY_MENTION) {
-                    contentType = 1;
-                }
+                // Stories removed: render as unsupported text stub.
+                messageOwner.media = new TLRPC.TL_messageMediaUnsupported();
+                type = TYPE_TEXT;
+                messageText = getString(R.string.UnsupportedMedia2);
             }
         } else if (currentEvent != null && currentEvent.action instanceof TLRPC.TL_channelAdminLogEventActionChangeWallpaper) {
             TLRPC.TL_channelAdminLogEventActionChangeWallpaper wallPaper = (TLRPC.TL_channelAdminLogEventActionChangeWallpaper) currentEvent.action;

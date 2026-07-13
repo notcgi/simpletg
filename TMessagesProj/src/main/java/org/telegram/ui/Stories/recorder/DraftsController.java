@@ -9,6 +9,7 @@ import org.telegram.SQLite.SQLiteCursor;
 import org.telegram.SQLite.SQLiteDatabase;
 import org.telegram.SQLite.SQLitePreparedStatement;
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
@@ -39,7 +40,8 @@ public class DraftsController {
 
     public DraftsController(int currentAccount) {
         this.currentAccount = currentAccount;
-        loadFailed();
+        // Stories removed: do not load drafts.
+
     }
 
     public final ArrayList<StoryEntry> drafts = new ArrayList<>();
@@ -93,6 +95,10 @@ public class DraftsController {
 
     private boolean loaded, loading;
     public void load() {
+        // Stories removed.
+        if (true) {
+            return;
+        }
         if (loaded || loading) {
             return;
         }

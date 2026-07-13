@@ -67,7 +67,7 @@ public class FeaturesPageView extends BaseListPageView {
 
         MessagesController messagesController = MessagesController.getInstance(UserConfig.selectedAccount);
         SparseIntArray order = null;
-        if (type == FEATURES_STORIES) {
+        if (false && type == FEATURES_STORIES) {
             itemsTmp.add(new Item(VIEW_TYPE_ITEM, R.drawable.msg_stories_order,
                     LocaleController.getString(R.string.PremiumStoriesPriority),
                     LocaleController.getString(R.string.PremiumStoriesPriorityDescription),
@@ -263,7 +263,7 @@ public class FeaturesPageView extends BaseListPageView {
 
         public HeaderView(Context context) {
             super(context);
-            if (type == FEATURES_STORIES) {
+            if (false && type == FEATURES_STORIES) {
                 height = dp(150);
 
                 imageView = new BackupImageView(context);
@@ -365,7 +365,7 @@ public class FeaturesPageView extends BaseListPageView {
 
         @Override
         protected void dispatchDraw(Canvas canvas) {
-            if (type == FEATURES_STORIES) {
+            if (false && type == FEATURES_STORIES) {
                 imageView.getHitRect(AndroidUtilities.rectTmp2);
                 AndroidUtilities.rectTmp.set(AndroidUtilities.rectTmp2);
                 AndroidUtilities.rectTmp.inset(-dp(5), -dp(5));

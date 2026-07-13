@@ -82,10 +82,31 @@ dependencies {
 }
 
 def isWindows = String.valueOf(DefaultNativePlatform.currentOperatingSystem.toFamilyName() == OperatingSystemFamily.WINDOWS)
+def resolveAppId() {
+    def v = getProps("APP_ID")
+    if (v == null || v.toString().trim().isEmpty()) {
+        throw new GradleException("Set APP_ID in local.properties (https://my.telegram.org/apps)")
+    }
+    return v.toString().trim()
+}
+
+def resolveAppHash() {
+    def v = getProps("APP_HASH")
+    if (v == null || v.toString().trim().isEmpty()) {
+        throw new GradleException("Set APP_HASH in local.properties (https://my.telegram.org/apps)")
+    }
+    return v.toString().trim()
+}
+
 android {
     compileSdkVersion 35
     buildToolsVersion '35.0.0'
     ndkVersion "27.2.12479018"
+
+    defaultConfig {
+        buildConfigField "int", "APP_ID", resolveAppId()
+        buildConfigField "String", "APP_HASH", "\"" + resolveAppHash() + "\""
+    }
 
     sourceSets.main.jniLibs.srcDirs = ['./jni/']
 

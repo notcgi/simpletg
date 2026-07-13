@@ -847,13 +847,8 @@ public class PremiumFeatureBottomSheet extends BottomSheet implements Notificati
             });
             return doubleLimitsPagerView;
         }
-        if (featureData.type == PremiumPreviewFragment.PREMIUM_FEATURE_STORIES || featureData.type == PremiumPreviewFragment.PREMIUM_FEATURE_BUSINESS) {
-            final int type;
-            if (featureData.type == PremiumPreviewFragment.PREMIUM_FEATURE_BUSINESS) {
-                type = FeaturesPageView.FEATURES_BUSINESS;
-            } else {
-                type = FeaturesPageView.FEATURES_STORIES;
-            }
+        if (featureData.type == PremiumPreviewFragment.PREMIUM_FEATURE_BUSINESS) {
+            final int type = FeaturesPageView.FEATURES_BUSINESS;
             FeaturesPageView featuresPageView = new FeaturesPageView(context, type, resourcesProvider);
             featuresPageView.recyclerListView.setOnScrollListener(new RecyclerView.OnScrollListener() {
                 @Override

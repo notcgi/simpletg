@@ -33,6 +33,7 @@ import androidx.core.graphics.ColorUtils;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.FileLoader;
@@ -95,9 +96,11 @@ public class StoriesUtilities {
     private final static RectF rectTmp = new RectF();
 
     public static void drawAvatarWithStory(long dialogId, Canvas canvas, ImageReceiver avatarImage, AvatarStoryParams params) {
-        StoriesController storiesController = MessagesController.getInstance(UserConfig.selectedAccount).getStoriesController();
-        boolean hasStories = storiesController.hasStories(dialogId);
-        drawAvatarWithStory(dialogId, canvas, avatarImage, UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId() != dialogId && hasStories, params);
+        // Stories removed: draw avatar without story ring.
+        if (params != null && params.originalAvatarRect != null) {
+            avatarImage.setImageCoords(params.originalAvatarRect);
+        }
+        avatarImage.draw(canvas);
     }
 
     static boolean scheduled = false;
@@ -118,6 +121,14 @@ public class StoriesUtilities {
     };
 
     public static void drawAvatarWithStory(long dialogId, Canvas canvas, ImageReceiver avatarImage, boolean hasStories, AvatarStoryParams params) {
+        // Stories removed: draw avatar without story ring.
+        if (params != null && params.originalAvatarRect != null) {
+            avatarImage.setImageCoords(params.originalAvatarRect);
+        }
+        avatarImage.draw(canvas);
+    }
+
+    private static void drawAvatarWithStoryInternal(long dialogId, Canvas canvas, ImageReceiver avatarImage, boolean hasStories, AvatarStoryParams params) {
         StoriesController storiesController = MessagesController.getInstance(UserConfig.selectedAccount).getStoriesController();
         boolean animated = params.animate;
         if (params.dialogId != dialogId) {
@@ -1279,6 +1290,11 @@ public class StoriesUtilities {
         public View child;
 
         public boolean checkOnTouchEvent(MotionEvent event, View view) {
+            // Stories removed: never intercept avatar taps for story viewer.
+            return false;
+        }
+
+        private boolean checkOnTouchEventInternal(MotionEvent event, View view) {
             child = view;
             StoriesController storiesController = MessagesController.getInstance(UserConfig.selectedAccount).getStoriesController();
             if (event.getAction() == MotionEvent.ACTION_DOWN && originalAvatarRect.contains(event.getX(), event.getY())) {

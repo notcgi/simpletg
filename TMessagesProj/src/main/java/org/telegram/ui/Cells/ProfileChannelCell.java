@@ -126,6 +126,7 @@ public class ProfileChannelCell extends FrameLayout implements Theme.Colorable {
                 fragment.getOrCreateStoryViewer().open(context, null, peerIds, 0, null, null, StoriesListPlaceProvider.of(ProfileChannelCell.this), false);
             }
         });
+        dialogCell.drawAvatar = true;
         dialogCell.avatarStart = 15;
         dialogCell.messagePaddingStart = 83;
         addView(dialogCell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.FILL_HORIZONTAL | Gravity.BOTTOM));

@@ -457,6 +457,9 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
 
     public ThemeActivity(int type) {
         super();
+        if (type != THEME_TYPE_BASIC) {
+            type = THEME_TYPE_BASIC;
+        }
         currentType = type;
         updateRows(true);
     }
@@ -658,11 +661,6 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             textSizeRow = rowCount++;
             backgroundRow = rowCount++;
             changeUserColor = rowCount++;
-            newThemeInfoRow = rowCount++;
-            themeHeaderRow = rowCount++;
-
-            themeListRow2 = rowCount++;
-            themeInfoRow = rowCount++;
 
             bubbleRadiusHeaderRow = rowCount++;
             bubbleRadiusRow = rowCount++;
@@ -680,7 +678,6 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             swipeGestureRow = rowCount++;
             swipeGestureInfoRow = rowCount++;
 
-            nightThemeRow = rowCount++;
             browserRow = rowCount++;
             liteModeRow = rowCount++;
             stickersRow = rowCount++;
@@ -957,9 +954,6 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             ActionBarMenu menu = actionBar.createMenu();
             menuItem = menu.addItem(0, R.drawable.ic_ab_other);
             menuItem.setContentDescription(getString("AccDescrMoreOptions", R.string.AccDescrMoreOptions));
-            menuItem.addSubItem(share_theme, R.drawable.msg_share, getString("ShareTheme", R.string.ShareTheme));
-            menuItem.addSubItem(edit_theme, R.drawable.msg_edit, getString("EditThemeColors", R.string.EditThemeColors));
-            menuItem.addSubItem(create_theme, R.drawable.msg_palette, getString("CreateNewThemeMenu", R.string.CreateNewThemeMenu));
             menuItem.addSubItem(reset_settings, R.drawable.msg_reset, getString("ThemeResetToDefaults", R.string.ThemeResetToDefaults));
 
             if (getMessagesController().getContentSettings() == null) {
@@ -985,20 +979,6 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             public void onItemClick(int id) {
                 if (id == -1) {
                     finishFragment();
-                } else if (id == create_theme) {
-                    createNewTheme();
-                } else if (id == share_theme) {
-                    Theme.ThemeInfo currentTheme = Theme.getCurrentTheme();
-                    Theme.ThemeAccent accent = currentTheme.getAccent(false);
-                    if (accent.info == null) {
-                        getMessagesController().saveThemeToServer(accent.parentTheme, accent);
-                        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needShareTheme, accent.parentTheme, accent);
-                    } else {
-                        String link = "https://" + getMessagesController().linkPrefix + "/addtheme/" + accent.info.slug;
-                        showDialog(new ShareAlert(getParentActivity(), null, link, false, link, false));
-                    }
-                } else if (id == edit_theme) {
-                    editTheme();
                 } else if (id == reset_settings) {
                     if (getParentActivity() == null) {
                         return;
@@ -1017,30 +997,6 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         if (changed) {
                             listAdapter.notifyItemChanged(textSizeRow, new Object());
                             listAdapter.notifyItemChanged(bubbleRadiusRow, new Object());
-                        }
-                        if (themesHorizontalListCell != null) {
-                            Theme.ThemeInfo themeInfo = Theme.getTheme("Blue");
-                            Theme.ThemeInfo currentTheme = Theme.getCurrentTheme();
-                            Theme.ThemeAccent accent = themeInfo.themeAccentsMap.get(Theme.DEFALT_THEME_ACCENT_ID);
-                            if (accent != null) {
-                                Theme.OverrideWallpaperInfo info = new Theme.OverrideWallpaperInfo();
-                                info.slug = Theme.DEFAULT_BACKGROUND_SLUG;
-                                info.fileName = "Blue_99_wp.jpg";
-                                info.originalFileName = "Blue_99_wp.jpg";
-                                accent.overrideWallpaper = info;
-                                themeInfo.setOverrideWallpaper(info);
-                            }
-                            if (themeInfo != currentTheme) {
-                                themeInfo.setCurrentAccentId(Theme.DEFALT_THEME_ACCENT_ID);
-                                Theme.saveThemeAccents(themeInfo, true, false, true, false);
-                                themesHorizontalListCell.selectTheme(themeInfo);
-                                themesHorizontalListCell.smoothScrollToPosition(0);
-                            } else if (themeInfo.currentAccentId != Theme.DEFALT_THEME_ACCENT_ID) {
-                                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, currentTheme, currentType == THEME_TYPE_NIGHT, null, Theme.DEFALT_THEME_ACCENT_ID);
-                                listAdapter.notifyItemChanged(themeAccentListRow);
-                            } else {
-                                Theme.reloadWallpaper(true);
-                            }
                         }
                     });
                     builder1.setNegativeButton(getString("Cancel", R.string.Cancel), null);
@@ -1115,7 +1071,8 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                     ((TextCheckCell) view).setChecked(!animations);
                 }
             } else if (position == backgroundRow) {
-                presentFragment(new WallpapersListActivity(WallpapersListActivity.TYPE_ALL));
+                // Chat wallpaper picker disabled: backgrounds are always solid white.
+                return;
             } else if (position == changeUserColor) {
                 presentFragment(new PeerColorActivity(0).setOnApplied(this));
             } else if (position == sendByEnterRow) {

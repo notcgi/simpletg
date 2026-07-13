@@ -1,0 +1,11 @@
+## Android SDK
+sdk.dir=/opt/homebrew/share/android-commandlinetools
+
+## Signing (or use keystore.properties)
+RELEASE_STORE_PASSWORD=
+RELEASE_KEY_PASSWORD=
+RELEASE_KEY_ALIAS=simpletg
+
+## Telegram API — https://my.telegram.org/apps
+APP_ID=
+APP_HASH=

@@ -1,0 +1,41 @@
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+
+ext.simpletgStorePassword = {
+    def v = keystoreProperties['RELEASE_STORE_PASSWORD'] ?: localProperties['RELEASE_STORE_PASSWORD'] ?: (project.hasProperty('RELEASE_STORE_PASSWORD') ? RELEASE_STORE_PASSWORD : '')
+    if (!v) {
+        throw new GradleException("Missing RELEASE_STORE_PASSWORD. Put it in keystore.properties (see keystore.properties.example).")
+    }
+    return v
+}()
+ext.simpletgKeyPassword = {
+    def v = keystoreProperties['RELEASE_KEY_PASSWORD'] ?: localProperties['RELEASE_KEY_PASSWORD'] ?: (project.hasProperty('RELEASE_KEY_PASSWORD') ? RELEASE_KEY_PASSWORD : '')
+    if (!v) {
+        throw new GradleException("Missing RELEASE_KEY_PASSWORD. Put it in keystore.properties (see keystore.properties.example).")
+    }
+    return v
+}()
+ext.simpletgKeyAlias = {
+    def v = keystoreProperties['RELEASE_KEY_ALIAS'] ?: localProperties['RELEASE_KEY_ALIAS'] ?: (project.hasProperty('RELEASE_KEY_ALIAS') ? RELEASE_KEY_ALIAS : '')
+    if (!v) {
+        throw new GradleException("Missing RELEASE_KEY_ALIAS. Put it in keystore.properties (see keystore.properties.example).")
+    }
+    return v
+}()
+
+ext.simpletgAppId = {
+    def v = localProperties['APP_ID'] ?: (project.hasProperty('TELEGRAM_APP_ID') ? TELEGRAM_APP_ID : '')
+    return (v ?: '').toString().trim()
+}()
+ext.simpletgAppHash = {
+    def v = localProperties['APP_HASH'] ?: (project.hasProperty('TELEGRAM_APP_HASH') ? TELEGRAM_APP_HASH : '')
+    return (v ?: '').toString().trim()
+}()
