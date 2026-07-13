@@ -262,6 +262,10 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         avatarImageView.setContentDescription(getString(R.string.AccDescrProfilePicture));
         avatarImageView.setRoundRadius(dp(21));
         addView(avatarImageView);
+        if (Theme.EINK_MODE) {
+            avatarImageView.setVisibility(GONE);
+            leftPadding = dp(4);
+        }
         if (avatarClickable) {
             avatarImageView.setOnClickListener(v -> {
                 if (!onAvatarClick()) {
@@ -273,13 +277,13 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         titleTextView = new SimpleTextConnectedView(context, titleTextLargerCopyView);
         titleTextView.setEllipsizeByGradient(true);
         titleTextView.setTextColor(getThemedColor(Theme.key_actionBarDefaultTitle));
-        titleTextView.setTextSize(18);
+        titleTextView.setTextSize(Theme.EINK_MODE ? 16 : 18);
         titleTextView.setGravity(Gravity.LEFT);
         titleTextView.setTypeface(AndroidUtilities.bold());
         titleTextView.setLeftDrawableTopPadding(-dp(1.3f));
         titleTextView.setCanHideRightDrawable(false);
         titleTextView.setRightDrawableOutside(true);
-        titleTextView.setPadding(0, dp(6), 0, dp(12));
+        titleTextView.setPadding(0, Theme.EINK_MODE ? dp(2) : dp(6), 0, Theme.EINK_MODE ? dp(4) : dp(12));
         addView(titleTextView);
 
         if (useAnimatedSubtitle()) {
@@ -288,7 +292,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
             animatedSubtitleTextView.setEllipsizeByGradient(true);
             animatedSubtitleTextView.setTextColor(getThemedColor(Theme.key_actionBarDefaultSubtitle));
             animatedSubtitleTextView.setTag(Theme.key_actionBarDefaultSubtitle);
-            animatedSubtitleTextView.setTextSize(dp(14));
+            animatedSubtitleTextView.setTextSize(dp(Theme.EINK_MODE ? 12 : 14));
             animatedSubtitleTextView.setGravity(Gravity.LEFT);
             animatedSubtitleTextView.setPadding(0, 0, dp(10), 0);
             animatedSubtitleTextView.setTranslationY(-dp(1));
@@ -298,7 +302,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
             subtitleTextView.setEllipsizeByGradient(true);
             subtitleTextView.setTextColor(getThemedColor(Theme.key_actionBarDefaultSubtitle));
             subtitleTextView.setTag(Theme.key_actionBarDefaultSubtitle);
-            subtitleTextView.setTextSize(14);
+            subtitleTextView.setTextSize(Theme.EINK_MODE ? 12 : 14);
             subtitleTextView.setGravity(Gravity.LEFT);
             subtitleTextView.setPadding(0, 0, dp(10), 0);
             addView(subtitleTextView);
@@ -651,7 +655,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec) + titleTextView.getPaddingRight();
-        int availableWidth = width - dp((avatarImageView.getVisibility() == VISIBLE ? 54 : 0) + 16);
+        int availableWidth = width - dp((avatarImageView.getVisibility() == VISIBLE && !Theme.EINK_MODE ? 54 : 0) + (Theme.EINK_MODE ? 8 : 16));
         avatarImageView.measure(MeasureSpec.makeMeasureSpec(dp(avatarSizeInDp), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(avatarSizeInDp), MeasureSpec.EXACTLY));
         titleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(24 + 8) + titleTextView.getPaddingRight(), MeasureSpec.AT_MOST));
         if (subtitleTextView != null) {
@@ -739,6 +743,10 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
 
     private boolean glassMode;
     public void setGlassMode() {
+        if (Theme.EINK_MODE) {
+            glassMode = false;
+            return;
+        }
         if (titleTextView != null) {
             titleTextView.setTextSizePx(dp(17.5f));
         }
@@ -752,10 +760,12 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         final int actionBarHeight = ActionBar.getCurrentActionBarHeight();
         final int viewTop = (actionBarHeight - avatarImageView.getMeasuredHeight()) / 2 + (occupyStatusBar ? AndroidUtilities.statusBarHeight : 0);
-        final int subtitleTop = viewTop + dp(glassMode ? 23.66f : 24);
+        final int subtitleTop = viewTop + dp(Theme.EINK_MODE ? 18 : glassMode ? 23.66f : 24);
 
-        avatarImageView.layout(leftPadding, viewTop, leftPadding + avatarImageView.getMeasuredWidth(), viewTop + avatarImageView.getMeasuredHeight());
-        int l = leftPadding + (avatarImageView.getVisibility() == VISIBLE ? dp(glassMode ? 48.66f : 54) : dp(glassMode ? 12 : 0)) + rightAvatarPadding;
+        if (avatarImageView.getVisibility() == VISIBLE) {
+            avatarImageView.layout(leftPadding, viewTop, leftPadding + avatarImageView.getMeasuredWidth(), viewTop + avatarImageView.getMeasuredHeight());
+        }
+        int l = leftPadding + (avatarImageView.getVisibility() == VISIBLE && !Theme.EINK_MODE ? dp(glassMode ? 48.66f : 54) : dp(Theme.EINK_MODE ? 0 : glassMode ? 12 : 0)) + rightAvatarPadding;
         SimpleTextView titleTextLargerCopyView = this.titleTextLargerCopyView.get();
         if (getSubtitleTextView().getVisibility() != GONE) {
             titleTextView.layout(l, viewTop + dp(1.66f) - titleTextView.getPaddingTop(), l + titleTextView.getMeasuredWidth(), viewTop + titleTextView.getTextHeight() + dp(1.66f) - titleTextView.getPaddingTop() + titleTextView.getPaddingBottom());

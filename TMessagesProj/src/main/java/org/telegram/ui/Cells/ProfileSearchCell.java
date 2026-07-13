@@ -1021,11 +1021,20 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         if (countLayout != null) {
             final int x = countLeft - dp(5.5f);
             rect.set(x, countTop, x + countWidth + dp(11), countTop + dp(23));
-            canvas.drawRoundRect(rect, 11.5f * AndroidUtilities.density, 11.5f * AndroidUtilities.density, MessagesController.getInstance(currentAccount).isDialogMuted(dialog_id, 0) ? Theme.dialogs_countGrayPaint : Theme.dialogs_countPaint);
+            final boolean muted = MessagesController.getInstance(currentAccount).isDialogMuted(dialog_id, 0);
+            if (!Theme.EINK_MODE) {
+                canvas.drawRoundRect(rect, 11.5f * AndroidUtilities.density, 11.5f * AndroidUtilities.density, muted ? Theme.dialogs_countGrayPaint : Theme.dialogs_countPaint);
+            } else {
+                int colorKey = muted ? Theme.key_chats_unreadCounterMuted : Theme.key_chats_unreadCounter;
+                Theme.dialogs_countTextPaint.setColor(Theme.getColor(colorKey));
+            }
             canvas.save();
             canvas.translate(countLeft, countTop + dp(4));
             countLayout.draw(canvas);
             canvas.restore();
+            if (Theme.EINK_MODE) {
+                Theme.dialogs_countTextPaint.setColor(Theme.getColor(Theme.key_chats_unreadCounterText));
+            }
         }
 
         if (actionLayout != null) {

@@ -952,9 +952,9 @@ public class FlickerLoadingView extends View implements Theme.Colorable {
     private int getCellHeight(int width) {
         switch (getViewType()) {
             case DIALOG_CELL_TYPE:
-                return dp((SharedConfig.useThreeLinesLayout ? 78 : 72) + 1);
+                return dp((SharedConfig.useThreeLinesLayout ? 66 : 60) + 1);
             case TOPIC_CELL_TYPE:
-                return dp((SharedConfig.useThreeLinesLayout ? 76 : 64) + 1);
+                return dp((SharedConfig.useThreeLinesLayout ? 64 : 58) + 1);
             case DIALOG_TYPE:
                 return dp(78) + 1;
             case PHOTOS_TYPE:

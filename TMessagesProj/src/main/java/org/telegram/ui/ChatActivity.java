@@ -4195,7 +4195,7 @@ public class ChatActivity extends BaseFragment implements
             });
             getConnectionsManager().bindRequestToGuid(req, classGuid);
         } else {
-            actionBar.addView(avatarContainer, 0, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT, !inPreviewMode ? 53 : 4, 0, 52, 0));
+            actionBar.addView(avatarContainer, 0, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT, !inPreviewMode ? (Theme.EINK_MODE ? 40 : 53) : 4, 0, 52, 0));
             actionBar.createMenu().bringToFront();
         }
         actionBar.setOnActionModeFactorChangeListener(() -> {
@@ -8289,6 +8289,9 @@ public class ChatActivity extends BaseFragment implements
             undoView.showWithAction(dialog_id, UndoView.ACTION_TEXT_INFO, LocaleController.getString(R.string.BroadcastGroupInfo));
         });
         bottomChannelButtonsLayout.setButtonOnClickListener(ChatActivityChannelButtonsLayout.BUTTON_GIFT, v -> {
+            if (!BuildVars.STARS_GIFTS) {
+                return;
+            }
             HintsController.Hint.ChannelGiftHint.doNotShowAgain();
             showDialog(new GiftSheet(getContext(), currentAccount, getDialogId(), null, null));
         });
@@ -11211,6 +11214,7 @@ public class ChatActivity extends BaseFragment implements
             return;
         }
         final int possibleLeftMarginDp = 0; // isSideMenued() ? SIDE_MENU_WIDTH : 0;
+        final int pinnedHeight = Theme.EINK_MODE ? 44 : 48;
         pinnedMessageView = new FrameLayout(getContext()) {
 
             float lastY;
@@ -11259,7 +11263,7 @@ public class ChatActivity extends BaseFragment implements
             protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
                 if (child == pinnedLineView) {
                     canvas.save();
-                    canvas.clipRect(0, 0, getMeasuredWidth(), AndroidUtilities.dp(48));
+                    canvas.clipRect(0, 0, getMeasuredWidth(), AndroidUtilities.dp(pinnedHeight));
                 }
                 boolean result;
                 if (child == pinnedMessageTextView[0] || child == pinnedMessageTextView[1]) {
@@ -11278,7 +11282,7 @@ public class ChatActivity extends BaseFragment implements
             }
         };
         pinnedMessageView.setTag(1);
-        topPanelLayout.addView(pinnedMessageView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
+        topPanelLayout.addView(pinnedMessageView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, pinnedHeight));
         topPanelLayout.setPriority(pinnedMessageView, 1);
         topPanelLayout.setDebugName(pinnedMessageView, "pinned message view");
         pinnedMessageView.setOnClickListener(v -> {
@@ -11310,7 +11314,7 @@ public class ChatActivity extends BaseFragment implements
         pinnedMessageView.setBackground(Theme.getSelectorDrawable(false));
 
         pinnedLineView = new PinnedLineView(getContext(), themeDelegate);
-        pinnedMessageView.addView(pinnedLineView, LayoutHelper.createFrame(3, 48, Gravity.LEFT | Gravity.TOP, 13, 0, 0, 0));
+        pinnedMessageView.addView(pinnedLineView, LayoutHelper.createFrame(3, pinnedHeight, Gravity.LEFT | Gravity.TOP, 13, 0, 0, 0));
         pinnedMessageView.setClipChildren(false);
 
         pinnedCounterTextView = new NumberTextView(getContext());
@@ -11325,7 +11329,10 @@ public class ChatActivity extends BaseFragment implements
             pinnedNameTextView[a].setTextSize(14);
             pinnedNameTextView[a].setTextColor(getThemedColor(Theme.key_chat_topPanelTitle));
             pinnedNameTextView[a].setTypeface(AndroidUtilities.bold());
-            pinnedMessageView.addView(pinnedNameTextView[a], LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 18, Gravity.TOP | Gravity.LEFT, 23, 7.3f, 44 + possibleLeftMarginDp, 0));
+            if (Theme.EINK_MODE) {
+                pinnedNameTextView[a].setTextSize(13);
+            }
+            pinnedMessageView.addView(pinnedNameTextView[a], LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 18, Gravity.TOP | Gravity.LEFT, 23, Theme.EINK_MODE ? 6f : 7.3f, 44 + possibleLeftMarginDp, 0));
 
             pinnedMessageTextView[a] = new SimpleTextView(getContext()) {
                 @Override
@@ -11340,9 +11347,9 @@ public class ChatActivity extends BaseFragment implements
                     }
                 }
             };
-            pinnedMessageTextView[a].setTextSize(14);
+            pinnedMessageTextView[a].setTextSize(Theme.EINK_MODE ? 13 : 14);
             pinnedMessageTextView[a].setTextColor(getThemedColor(Theme.key_chat_topPanelMessage));
-            pinnedMessageView.addView(pinnedMessageTextView[a], LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 18, Gravity.TOP | Gravity.LEFT, 23, 25.3f, 44 + possibleLeftMarginDp, 0));
+            pinnedMessageView.addView(pinnedMessageTextView[a], LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 18, Gravity.TOP | Gravity.LEFT, 23, Theme.EINK_MODE ? 22f : 25.3f, 44 + possibleLeftMarginDp, 0));
 
             pinnedMessageButton[a] = new PinnedMessageButton(getContext());
             pinnedMessageView.addView(pinnedMessageButton[a], LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 28, Gravity.TOP | Gravity.RIGHT, 0, 10, 14, 0));
@@ -11382,7 +11389,7 @@ public class ChatActivity extends BaseFragment implements
             };
             pinnedMessageImageView[a].setBlurAllowed(true);
             pinnedMessageImageView[a].setRoundRadius(AndroidUtilities.dp(2));
-            pinnedMessageView.addView(pinnedMessageImageView[a], LayoutHelper.createFrame(32, 32, Gravity.TOP | Gravity.LEFT, 22, 8, 0, 0));
+            pinnedMessageView.addView(pinnedMessageImageView[a], LayoutHelper.createFrame(Theme.EINK_MODE ? 24 : 32, Theme.EINK_MODE ? 24 : 32, Gravity.TOP | Gravity.LEFT, 22, Theme.EINK_MODE ? 10 : 8, 0, 0));
             if (a == 1) {
                 pinnedNameTextView[a].setVisibility(View.INVISIBLE);
                 pinnedMessageButton[a].setVisibility(View.INVISIBLE);
@@ -11401,7 +11408,7 @@ public class ChatActivity extends BaseFragment implements
         pinnedListButton.setScaleX(0.4f);
         pinnedListButton.setScaleY(0.4f);
         pinnedListButton.setBackgroundDrawable(Theme.createSelectorDrawable(getThemedColor(Theme.key_inappPlayerClose) & 0x19ffffff));
-        pinnedMessageView.addView(pinnedListButton, LayoutHelper.createFrame(36, 48, Gravity.RIGHT | Gravity.TOP, 0, 0, 7, 0));
+        pinnedMessageView.addView(pinnedListButton, LayoutHelper.createFrame(36, pinnedHeight, Gravity.RIGHT | Gravity.TOP, 0, 0, 7, 0));
         pinnedListButton.setOnClickListener(v -> openPinnedMessagesList(false));
 
         closePinned = new ImageView(getContext());
@@ -11416,10 +11423,10 @@ public class ChatActivity extends BaseFragment implements
         pinnedProgress.setSize(AndroidUtilities.dp(16));
         pinnedProgress.setStrokeWidth(2f);
         pinnedProgress.setProgressColor(getThemedColor(Theme.key_chat_topPanelLine));
-        pinnedMessageView.addView(pinnedProgress, LayoutHelper.createFrame(36, 48, Gravity.RIGHT | Gravity.TOP, 0, 0, 2, 0));
+        pinnedMessageView.addView(pinnedProgress, LayoutHelper.createFrame(36, pinnedHeight, Gravity.RIGHT | Gravity.TOP, 0, 0, 2, 0));
 
         closePinned.setBackgroundDrawable(Theme.createSelectorDrawable(getThemedColor(Theme.key_inappPlayerClose) & 0x19ffffff, 1, AndroidUtilities.dp(14)));
-        pinnedMessageView.addView(closePinned, LayoutHelper.createFrame(36, 48, Gravity.RIGHT | Gravity.TOP, 0, 0, 2, 0));
+        pinnedMessageView.addView(closePinned, LayoutHelper.createFrame(36, pinnedHeight, Gravity.RIGHT | Gravity.TOP, 0, 0, 2, 0));
         closePinned.setOnClickListener(v -> {
             if (getParentActivity() == null) {
                 return;
@@ -11457,6 +11464,7 @@ public class ChatActivity extends BaseFragment implements
         });
 
         updatePinnedListButton(false);
+        invalidateChatListViewTopPadding();
     }
 
     private void openAnotherForward() {
@@ -11955,7 +11963,7 @@ public class ChatActivity extends BaseFragment implements
         }
 
         if (topPanelLayout != null) {
-            topPanelLayout.setTranslationY(ty - dp(5) - getTopicTabsSideSize(TopicsTabsView.Position.TOP) * getHashtagTabsShownT());
+            topPanelLayout.setTranslationY(ty - (Theme.EINK_MODE ? 0 : dp(5)) - getTopicTabsSideSize(TopicsTabsView.Position.TOP) * getHashtagTabsShownT());
         }
     }
 
@@ -33437,7 +33445,9 @@ public class ChatActivity extends BaseFragment implements
                 break;
             }
             case OPTION_GIFT: {
-                showDialog(new GiftSheet(getContext(), currentAccount, getDialogId(), null, null));
+                if (BuildVars.STARS_GIFTS) {
+                    showDialog(new GiftSheet(getContext(), currentAccount, getDialogId(), null, null));
+                }
                 break;
             }
             case OPTION_PIN: {
@@ -45283,7 +45293,7 @@ public class ChatActivity extends BaseFragment implements
                     icons.add(R.drawable.menu_reply);
                 }
             }
-            if (selectedObject != null && selectedObject.messageOwner != null && currentUser != null && !UserObject.isService(currentUser.id) && (selectedObject.messageOwner.action instanceof TLRPC.TL_messageActionStarGift || selectedObject.messageOwner.action instanceof TLRPC.TL_messageActionStarGiftUnique || selectedObject.messageOwner.action instanceof TLRPC.TL_messageActionGiftPremium)) {
+            if (BuildVars.STARS_GIFTS && selectedObject != null && selectedObject.messageOwner != null && currentUser != null && !UserObject.isService(currentUser.id) && (selectedObject.messageOwner.action instanceof TLRPC.TL_messageActionStarGift || selectedObject.messageOwner.action instanceof TLRPC.TL_messageActionStarGiftUnique || selectedObject.messageOwner.action instanceof TLRPC.TL_messageActionGiftPremium)) {
                 items.add(selectedObject.isOutOwner() ? getString(R.string.SendAnotherGift) : formatString(R.string.SendGiftTo, UserObject.getForcedFirstName(currentUser)));
                 options.add(OPTION_GIFT);
                 icons.add(R.drawable.menu_gift);

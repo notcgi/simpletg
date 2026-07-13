@@ -151,7 +151,7 @@ public class CounterView extends View {
             float countTop = (lastH - AndroidUtilities.dp(size)) / 2f;
             updateX(countWidth);
             rectF.set(x, countTop, x + countWidth + AndroidUtilities.dp(radius - 0.5f), countTop + AndroidUtilities.dp(size));
-            if (circlePaint != null && drawBackground) {
+            if (!Theme.EINK_MODE && circlePaint != null && drawBackground) {
                 boolean needRestore = false;
                 if (circleScale != 1f) {
                     canvas.save();
@@ -314,11 +314,14 @@ public class CounterView extends View {
                 int circleColor = getThemedColor(circleColorKey);
                 if (this.textColor != textColor) {
                     this.textColor = textColor;
-                    textPaint.setColor(textColor);
+                    textPaint.setColor(Theme.EINK_MODE ? circleColor : textColor);
                 }
                 if (circlePaint != null && this.circleColor != circleColor) {
                     this.circleColor = circleColor;
                     circlePaint.setColor(circleColor);
+                    if (Theme.EINK_MODE) {
+                        textPaint.setColor(circleColor);
+                    }
                 }
             }
             if (countChangeProgress != 1f) {
@@ -364,7 +367,7 @@ public class CounterView extends View {
                         canvas.save();
                         canvas.scale(circleScale, circleScale, rectF.centerX(), rectF.centerY());
                     }
-                    if (drawBackground && circlePaint != null) {
+                    if (!Theme.EINK_MODE && drawBackground && circlePaint != null) {
                         canvas.drawRoundRect(rectF, radius * AndroidUtilities.density, radius * AndroidUtilities.density, circlePaint);
                         if (addServiceGradient && Theme.hasGradientService()) {
                             canvas.drawRoundRect(rectF, radius * AndroidUtilities.density, radius * AndroidUtilities.density, Theme.chat_actionBackgroundGradientDarkenPaint);

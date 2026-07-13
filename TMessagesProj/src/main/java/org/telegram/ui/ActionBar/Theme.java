@@ -357,6 +357,10 @@ public class Theme {
                 gradientColor2 = getCurrentColor(key_chat_outBubbleGradient2);
                 gradientColor3 = getCurrentColor(key_chat_outBubbleGradient3);
                 animatedGradient = getCurrentColor(key_chat_outBubbleGradientAnimated) != 0;
+                if (EINK_MODE) {
+                    gradientColor1 = gradientColor2 = gradientColor3 = 0;
+                    animatedGradient = false;
+                }
             } else {
                 color = getColor(isSelected ? key_chat_inBubbleSelected : key_chat_inBubble);
                 gradientColor1 = 0;
@@ -486,7 +490,7 @@ public class Theme {
             } else if (overrideRounding > 0) {
                 newRad = 0;
             } else {
-                newRad = dp(SharedConfig.bubbleRadius);
+                newRad = dp(EINK_MODE ? EINK_BUBBLE_RADIUS_DP : SharedConfig.bubbleRadius);
             }
             int idx;
             if (isTopNear && isBottomNear) {
@@ -515,7 +519,7 @@ public class Theme {
                 color = getColor(isOut ? key_chat_outBubble : key_chat_inBubble);
             }
 
-            boolean drawWithShadow = gradientShader == null && !isSelected && !isCrossfadeBackground;
+            boolean drawWithShadow = !EINK_MODE && gradientShader == null && !isSelected && !isCrossfadeBackground;
             int shadowColor = getColor(isOut ? key_chat_outBubbleShadow : key_chat_inBubbleShadow);
             if (lastDrawWithShadow != drawWithShadow || currentBackgroundDrawableRadius[idx2][idx] != newRad || (drawWithShadow && shadowDrawableColor[idx] != shadowColor) || backgroundDrawableColor[idx2][idx] != color) {
                 currentBackgroundDrawableRadius[idx2][idx] = newRad;
@@ -710,6 +714,9 @@ public class Theme {
         }
 
         public void draw(Canvas canvas, Paint paintToUse) {
+            if (EINK_MODE && paintToUse == null) {
+                return;
+            }
             Rect bounds = getBounds();
             if (paintToUse == null && gradientShader == null && overrideRoundRadius == 0 && overrideRounding <= 0) {
                 Drawable background = getBackgroundDrawable();
@@ -733,10 +740,10 @@ public class Theme {
                 rad = dp(6);
                 nearRad = dp(6);
             } else {
-                rad = dp(SharedConfig.bubbleRadius);
-                nearRad = dp(Math.min(6, SharedConfig.bubbleRadius));
+                rad = dp(EINK_MODE ? EINK_BUBBLE_RADIUS_DP : SharedConfig.bubbleRadius);
+                nearRad = dp(EINK_MODE ? EINK_BUBBLE_RADIUS_DP : Math.min(6, SharedConfig.bubbleRadius));
             }
-            int smallRad = dp(6);
+            int smallRad = dp(EINK_MODE ? 3 : 6);
 
             Paint p = paintToUse == null ? paint : paintToUse;
 
@@ -796,10 +803,10 @@ public class Theme {
                 rad = dp(6);
                 nearRad = dp(6);
             } else {
-                rad = dp(SharedConfig.bubbleRadius);
-                nearRad = dp(Math.min(6, SharedConfig.bubbleRadius));
+                rad = dp(EINK_MODE ? EINK_BUBBLE_RADIUS_DP : SharedConfig.bubbleRadius);
+                nearRad = dp(EINK_MODE ? EINK_BUBBLE_RADIUS_DP : Math.min(6, SharedConfig.bubbleRadius));
             }
-            int smallRad = dp(6);
+            int smallRad = dp(EINK_MODE ? 3 : 6);
             int top = Math.max(bounds.top, 0);
             boolean drawFullBottom, drawFullTop;
             if (pathDrawCacheParams != null && bounds.height() < currentBackgroundHeight) {
@@ -2015,6 +2022,7 @@ public class Theme {
 
     /** When true, all theme colors are quantized to 16 grayscale levels for e-ink displays. */
     public static final boolean EINK_MODE = true;
+    private static final int EINK_BUBBLE_RADIUS_DP = 4;
     private static final int EINK_GRAY_LEVELS = 16;
     private static final int EINK_GRAY_STEP = 255 / (EINK_GRAY_LEVELS - 1);
 
@@ -5535,6 +5543,9 @@ public class Theme {
     public static final int RIPPLE_MASK_ROUNDRECT_6DP = 7;
 
     public static Drawable createSelectorDrawable(int color, int maskType, int radius) {
+        if (EINK_MODE) {
+            return new ColorDrawable(Color.TRANSPARENT);
+        }
         Drawable maskDrawable = null;
         if ((maskType == RIPPLE_MASK_CIRCLE_20DP || maskType == 5) && Build.VERSION.SDK_INT >= 23) {
             maskDrawable = null;
@@ -5618,6 +5629,9 @@ public class Theme {
     }
 
     public static Drawable createInsetRoundRectDrawable(int color, float radius, int insetL, int insetT, int insetR, int insetB) {
+        if (EINK_MODE) {
+            return new ColorDrawable(Color.TRANSPARENT);
+        }
         maskPaint.setColor(0xffffffff);
         Drawable maskDrawable = new Drawable() {
             private final RectF rectF = new RectF();
@@ -6051,6 +6065,9 @@ public class Theme {
     }
 
     public static Drawable createRadSelectorDrawable(int color, int topRad, int bottomRad) {
+        if (EINK_MODE) {
+            return new ColorDrawable(Color.TRANSPARENT);
+        }
         maskPaint.setColor(0xffffffff);
         Drawable maskDrawable = new RippleRadMaskDrawable(topRad, bottomRad);
         ColorStateList colorStateList = new ColorStateList(
@@ -6061,6 +6078,9 @@ public class Theme {
     }
 
     public static Drawable createRadSelectorDrawable(int color, int rippleColor, int topRad, int bottomRad) {
+        if (EINK_MODE) {
+            return new ColorDrawable(Color.TRANSPARENT);
+        }
         maskPaint.setColor(0xffffffff);
         Drawable maskDrawable = new RippleRadMaskDrawable(topRad, bottomRad);
         ColorStateList colorStateList = new ColorStateList(
@@ -6071,6 +6091,9 @@ public class Theme {
     }
 
     public static Drawable createRadSelectorDrawable(int color, int topLeftRad, int topRightRad, int bottomRightRad, int bottomLeftRad) {
+        if (EINK_MODE) {
+            return new ColorDrawable(Color.TRANSPARENT);
+        }
         maskPaint.setColor(0xffffffff);
         Drawable maskDrawable = new RippleRadMaskDrawable(topLeftRad, topRightRad, bottomRightRad, bottomLeftRad);
         ColorStateList colorStateList = new ColorStateList(
@@ -8294,10 +8317,10 @@ public class Theme {
         }
 
         dialogs_messageNamePaint.setTextSize(dp(14));
-        dialogs_timePaint.setTextSize(dp(12));
-        dialogs_timePaintBold.setTextSize(dp(12));
+        dialogs_timePaint.setTextSize(dp(10));
+        dialogs_timePaintBold.setTextSize(dp(10));
         dialogs_timePaintBold.setTypeface(AndroidUtilities.bold());
-        dialogs_timePaintBoldAccent.setTextSize(dp(12));
+        dialogs_timePaintBoldAccent.setTextSize(dp(10));
         dialogs_timePaintBoldAccent.setTypeface(AndroidUtilities.bold());
         dialogs_archiveTextPaint.setTextSize(dp(13));
         dialogs_archiveTextPaintSmall.setTextSize(dp(11));
@@ -8799,7 +8822,7 @@ public class Theme {
             chat_forwardNamePaint.setTextSize(dp(smallerDp));
             chat_adminPaint.setTextSize(dp(smallerDp - 1));
             float timeDp = 2 * (SharedConfig.fontSize - 16) / 3f + 12;
-            chat_timePaint.setTextSize(dp(12));
+            chat_timePaint.setTextSize(dp(EINK_MODE ? 10 : timeDp));
             chat_gamePaint.setTextSize(dp(13));
             chat_shipmentPaint.setTextSize(dp(13));
             chat_instantViewPaint.setTextSize(dp(13));

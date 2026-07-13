@@ -1748,7 +1748,7 @@ public class MessagesController extends BaseController implements NotificationCe
         tonProxyAddress = mainPreferences.getString("tonProxyAddress", "magic.org");
         weatherSearchUsername = mainPreferences.getString("weatherSearchUsername", "izweatherbot");
         storyWeatherPreload = mainPreferences.getBoolean("storyWeatherPreload", true);
-        starsGiftsEnabled = mainPreferences.getBoolean("starsGiftsEnabled", true);
+        starsGiftsEnabled = BuildVars.STARS_GIFTS && mainPreferences.getBoolean("starsGiftsEnabled", true);
         stargiftsBlocked = mainPreferences.getBoolean("stargiftsBlocked", true); // !BuildVars.DEBUG_VERSION);
         starsPaidReactionAmountMax = mainPreferences.getLong("starsPaidReactionAmountMax", 10_000L);
         starsSubscriptionAmountMax = mainPreferences.getLong("starsSubscriptionAmountMax", 2500L);
@@ -4626,7 +4626,7 @@ public class MessagesController extends BaseController implements NotificationCe
                     break;
                 }
                 case "stars_gifts_enabled": {
-                    if (value.value instanceof TLRPC.TL_jsonBool) {
+                    if (BuildVars.STARS_GIFTS && value.value instanceof TLRPC.TL_jsonBool) {
                         TLRPC.TL_jsonBool bool = (TLRPC.TL_jsonBool) value.value;
                         if (bool.value != starsGiftsEnabled) {
                             starsGiftsEnabled = bool.value;

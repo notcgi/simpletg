@@ -162,6 +162,7 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
     private boolean attachState;
     private FrameLayout titlesContainer;
     private boolean useContainerForTitles;
+    private View filterTabsView;
 
     private View.OnTouchListener interceptTouchEventListener;
     private final Theme.ResourcesProvider resourcesProvider;
@@ -200,6 +201,14 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
     public void setupGlass(BlurredBackgroundDrawableViewFactory factory, BlurredBackgroundColorProvider colorProvider) {
         setBackground(null);
         setClipChildren(false);
+        if (Theme.EINK_MODE) {
+            glassMode = false;
+            glassDrawable = null;
+            glassDrawableBack = null;
+            glassDrawableMenu = null;
+            setBackgroundColor(Theme.getColor(Theme.key_actionBarDefault));
+            return;
+        }
         glassMode = true;
 
         glassDrawable = factory.create(this)
@@ -357,7 +366,46 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
     }
 
     protected boolean shouldClipChild(View child) {
-        return clipContent && (child == titleTextView[0] || child == titleTextView[1] || child == subtitleTextView || child == menu || child == backButtonImageView || child == additionalSubtitleTextView || child == titlesContainer);
+        return clipContent && (child == titleTextView[0] || child == titleTextView[1] || child == subtitleTextView || child == menu || child == backButtonImageView || child == additionalSubtitleTextView || child == titlesContainer || child == filterTabsView);
+    }
+
+    public void setFilterTabsView(View view) {
+        if (filterTabsView != null && filterTabsView.getParent() == this) {
+            removeView(filterTabsView);
+        }
+        filterTabsView = view;
+        if (view != null) {
+            // Use WRAP_CONTENT so default MATCH_PARENT FrameLayout params cannot
+            // briefly cover the whole action bar (and steal list touches) before
+            // the custom onMeasure/onLayout path sizes the tabs slot.
+            addView(view, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT));
+            requestLayout();
+        }
+    }
+
+    public View getFilterTabsView() {
+        return filterTabsView;
+    }
+
+    private int getFilterTabsStartX(int textLeft) {
+        if (titleTextView[0] != null && titleTextView[0].getVisibility() != GONE && titleTextView[0].getMeasuredWidth() > 0) {
+            return textLeft + titleTextView[0].getMeasuredWidth() + dp(4);
+        }
+        return textLeft + dp(36);
+    }
+
+    private int getMenuLeft(int width) {
+        if (menu == null || menu.getVisibility() == GONE) {
+            return width;
+        }
+        if (menu.searchFieldVisible()) {
+            return dp(menuOccupyBack ? 0 : AndroidUtilities.isTablet() ? 74 : 66);
+        }
+        return width - menu.getMeasuredWidth();
+    }
+
+    private boolean shouldLayoutFilterTabs() {
+        return filterTabsView != null && filterTabsView.getVisibility() != GONE && menu != null && menu.getVisibility() != GONE;
     }
 
     @Override
@@ -1409,6 +1457,9 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         for (int i = 0; i < 2; i++) {
             if (titleTextView[0] != null && titleTextView[0].getVisibility() != GONE || subtitleTextView != null && subtitleTextView.getVisibility() != GONE) {
                 int availableWidth = width - (menu != null ? menu.getMeasuredWidth() : 0) - dp(16) - textLeft - titleRightMargin;
+                if (shouldLayoutFilterTabs()) {
+                    availableWidth = Math.min(availableWidth, dp(36));
+                }
 
                 if (((fromBottom && i == 0) || (!fromBottom && i == 1)) && overlayTitleAnimation && titleAnimationRunning) {
                     titleTextView[i].setTextSize(glassMode ? 17 : !AndroidUtilities.isTablet() && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE ? 18 : 20);
@@ -1464,10 +1515,19 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             );
         }
 
+        if (shouldLayoutFilterTabs()) {
+            int filterTabsStart = getFilterTabsStartX(textLeft);
+            int filterTabsWidth = Math.max(0, getMenuLeft(width) - filterTabsStart - dp(4));
+            filterTabsView.measure(
+                MeasureSpec.makeMeasureSpec(filterTabsWidth, MeasureSpec.EXACTLY),
+                actionBarHeightSpec
+            );
+        }
+
         int childCount = getChildCount();
         for (int i = 0; i < childCount; i++) {
             View child = getChildAt(i);
-            if (child.getVisibility() == GONE || child == titleTextView[0] || child == titleTextView[1] || child == additionalSubTitleOverlayContainer || child == subtitleTextView || child == menu || child == backButtonImageView || child == additionalSubtitleTextView || child == avatarSearchImageView) {
+            if (child.getVisibility() == GONE || child == titleTextView[0] || child == titleTextView[1] || child == additionalSubTitleOverlayContainer || child == subtitleTextView || child == menu || child == backButtonImageView || child == additionalSubtitleTextView || child == avatarSearchImageView || child == filterTabsView) {
                 continue;
             }
             measureChildWithMargins(child, widthMeasureSpec, 0, MeasureSpec.makeMeasureSpec(getMeasuredHeight(), MeasureSpec.EXACTLY), 0);
@@ -1497,8 +1557,15 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         }
 
         if (menu != null && menu.getVisibility() != GONE) {
-            int menuLeft = menu.searchFieldVisible() ? dp(menuOccupyBack ? 0 : AndroidUtilities.isTablet() ? 74 : 66) : (right - left) - menu.getMeasuredWidth();
+            int menuLeft = getMenuLeft(right - left);
             menu.layout(menuLeft, additionalTop, menuLeft + menu.getMeasuredWidth(), additionalTop + menu.getMeasuredHeight());
+        }
+
+        if (shouldLayoutFilterTabs()) {
+            int filterTabsStart = getFilterTabsStartX(textLeft);
+            int filterTabsEnd = getMenuLeft(right - left) - dp(4);
+            int filterTabsTop = additionalTop + (getCurrentActionBarHeight() - filterTabsView.getMeasuredHeight()) / 2;
+            filterTabsView.layout(filterTabsStart, filterTabsTop, filterTabsEnd, filterTabsTop + filterTabsView.getMeasuredHeight());
         }
 
         for (int i = 0; i < 2; i++) {
@@ -1542,7 +1609,7 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         int childCount = getChildCount();
         for (int i = 0; i < childCount; i++) {
             View child = getChildAt(i);
-            if (child.getVisibility() == GONE || child == titleTextView[0] || child == titleTextView[1] || child == additionalSubTitleOverlayContainer || child == subtitleTextView || child == menu || child == backButtonImageView || child == additionalSubtitleTextView || child == avatarSearchImageView) {
+            if (child.getVisibility() == GONE || child == titleTextView[0] || child == titleTextView[1] || child == additionalSubTitleOverlayContainer || child == subtitleTextView || child == menu || child == backButtonImageView || child == additionalSubtitleTextView || child == avatarSearchImageView || child == filterTabsView) {
                 continue;
             }
 
@@ -1836,9 +1903,9 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
 
     public static int getCurrentActionBarHeight() {
         if (AndroidUtilities.displaySize.x > AndroidUtilities.displaySize.y) {
-            return dp(48);
+            return dp(36);
         } else {
-            return dp(56);
+            return dp(40);
         }
     }
 
@@ -2126,7 +2193,7 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         final int t = getHeight() - (getCurrentActionBarHeight() + s) / 2 - p;
         final int b = t + s + p * 2;
 
-        if (glassDrawable != null) {
+        if (!Theme.EINK_MODE && glassDrawable != null) {
             final int menuWidthWithPadding = menuWidth > 0 ? (menuWidth + p) : 0;
             final int rightOffset = lerp(menuWidthWithPadding, Math.max(menuWidthWithPadding, p + s), chatAvatarContainer == null ? 0f : 1f - animatorAvatarContainerHasAvatar.getFloatValue());
 
@@ -2150,11 +2217,11 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             glassDrawable.setBounds(left, t, right, b);
             glassDrawable.draw(canvas);
         }
-        if (glassDrawableBack != null && hasBackButton) {
+        if (!Theme.EINK_MODE && glassDrawableBack != null && hasBackButton) {
             glassDrawableBack.setBounds(0, t, s + p * 2, b);
             glassDrawableBack.draw(canvas);
         }
-        if (glassDrawableMenu != null && menuWidth > 0) {
+        if (!Theme.EINK_MODE && glassDrawableMenu != null && menuWidth > 0) {
             glassDrawableMenu.setBounds(getWidth() - menuWidth - p * 2, t, getWidth(), b);
             glassDrawableMenu.draw(canvas);
         }

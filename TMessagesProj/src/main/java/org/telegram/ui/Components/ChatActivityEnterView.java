@@ -2599,14 +2599,14 @@ public class ChatActivityEnterView extends FrameLayout implements
         };
         textFieldContainer.setClipChildren(false);
         textFieldContainer.setClipToPadding(false);
-        textFieldContainer.setPadding(0, dp(1), 0, 0);
+        textFieldContainer.setPadding(0, dp(Theme.EINK_MODE ? 0 : 1), 0, 0);
         addView(textFieldContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM, 0, 1, 0, 0));
 
         FrameLayout frameLayout = messageEditTextContainer = new FrameLayout(context) {
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-                final int height = Math.max(dp(44), getMeasuredHeight());
+                final int height = Math.max(dp(DEFAULT_HEIGHT), getMeasuredHeight());
                 if (animatorInputFieldHeight.getFactor() > 0) {
                     animatorInputFieldHeight.animateTo(height);
                 } else {
@@ -2659,10 +2659,10 @@ public class ChatActivityEnterView extends FrameLayout implements
         };
         emojiButton.setContentDescription(getString(R.string.AccDescrEmojiButton));
         emojiButton.setFocusable(true);
-        int padding = dp(7.5f);
+        int padding = dp(Theme.EINK_MODE ? 5 : 7.5f);
         emojiButton.setPadding(padding, padding, padding, padding);
         emojiButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));
-        emojiButton.setBackground(Theme.createInsetRoundRectDrawable(getThemedColor(Theme.key_listSelector), dp(19), dp(1), dp(3)));
+        emojiButton.setBackground(Theme.createInsetRoundRectDrawable(getThemedColor(Theme.key_listSelector), dp(Theme.EINK_MODE ? 8 : 19), dp(1), dp(3)));
         emojiButton.setOnClickListener(v -> {
             if (adjustPanLayoutHelper != null && adjustPanLayoutHelper.animationInProgress()) {
                 return;
@@ -3106,10 +3106,10 @@ public class ChatActivityEnterView extends FrameLayout implements
                         }
                     }
 
-                    final float r = dpf2(19);
+                    final float r = Theme.EINK_MODE ? dpf2(8) : dpf2(19);
                     paint.setColor(getThemedColor(Theme.key_chat_messagePanelSend));
                     final float margin = dpf2(3);
-                    final float height = dpf2(38);
+                    final float height = Theme.EINK_MODE ? dpf2(32) : dpf2(38);
                     final float width = dpf2(38);
                     backgroundRect.set(
                             getMeasuredWidth() - width - margin,
@@ -4577,7 +4577,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         return result;
     }
 
-    public boolean allowBlur = true;
+    public boolean allowBlur = !Theme.EINK_MODE;
     public boolean shouldDrawBackground = true;
     public boolean shouldDrawRecordedAudioPanelInParent;
     public boolean isStories;
@@ -4601,7 +4601,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
         int bottom = top + Theme.chat_composeShadowDrawable.getIntrinsicHeight();
 
-        if (withComposeShadowDrawable) {
+        if (withComposeShadowDrawable && !Theme.EINK_MODE) {
             Theme.chat_composeShadowDrawable.setAlpha((int) (composeShadowAlpha * 0xFF));
             Theme.chat_composeShadowDrawable.setBounds(0, top, getMeasuredWidth(), bottom);
             Theme.chat_composeShadowDrawable.draw(canvas);
@@ -6239,7 +6239,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
     }
 
-    public static final int DEFAULT_HEIGHT = 44;
+    public static final int DEFAULT_HEIGHT = Theme.EINK_MODE ? 36 : 44;
 
     private boolean resizeForTopViewLastShow;
     private void resizeForTopView(boolean show) {
@@ -14754,6 +14754,9 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     public boolean drawMessageEditText(Canvas canvas, Utilities.Callback0Return<Boolean> drawChild) {
+        if (Theme.EINK_MODE) {
+            return drawChild.run();
+        }
         float topAlpha = topGradientAlpha.set(messageEditText.canScrollVertically(-1));
         float bottomAlpha = bottomGradientAlpha.set(messageEditText.canScrollVertically(1));
         if (topAlpha <= 0 && bottomAlpha <= 0) {

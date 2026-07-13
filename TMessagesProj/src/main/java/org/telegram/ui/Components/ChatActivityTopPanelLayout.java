@@ -5,6 +5,7 @@ import static org.telegram.messenger.AndroidUtilities.dp;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.view.MotionEvent;
@@ -59,8 +60,17 @@ public class ChatActivityTopPanelLayout extends AnimatedLinearLayout {
 
     private final Path clipPath = new Path();
     private final RectF clipRectF = new RectF();
+    private final Paint einkBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private void checkBoundsAndClipping() {
+        if (Theme.EINK_MODE) {
+            if (backgroundDrawable != null) {
+                backgroundDrawable.setAlpha(0);
+            }
+            final float bgHeight = getMetadata().getTotalHeight();
+            clipRectF.set(getPaddingLeft(), getPaddingTop(), getMeasuredWidth() - getPaddingRight(), getPaddingTop() + bgHeight);
+            return;
+        }
         final float bgHeight = getMetadata().getTotalHeight();
         final float bgAlpha = getMetadata().getTotalVisibility();
 
@@ -92,12 +102,24 @@ public class ChatActivityTopPanelLayout extends AnimatedLinearLayout {
     protected void dispatchDraw(@NonNull Canvas canvas) {
         if (getMetadata().getTotalVisibility() == 0) return;
 
-        if (backgroundDrawable != null) {
+        if (Theme.EINK_MODE) {
+            final float bgHeight = getMetadata().getTotalHeight();
+            if (bgHeight > 0) {
+                einkBackgroundPaint.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                canvas.drawRect(getPaddingLeft(), getPaddingTop(), getMeasuredWidth() - getPaddingRight(), getPaddingTop() + bgHeight, einkBackgroundPaint);
+                final int wasAlpha = Theme.dividerPaint.getAlpha();
+                Theme.dividerPaint.setAlpha((int) (wasAlpha * getMetadata().getTotalVisibility()));
+                canvas.drawLine(getPaddingLeft(), getPaddingTop() + bgHeight, getMeasuredWidth() - getPaddingRight(), getPaddingTop() + bgHeight, Theme.dividerPaint);
+                Theme.dividerPaint.setAlpha(wasAlpha);
+            }
+        } else if (backgroundDrawable != null) {
             backgroundDrawable.draw(canvas);
         }
 
         canvas.save();
-        canvas.clipPath(clipPath);
+        if (!Theme.EINK_MODE) {
+            canvas.clipPath(clipPath);
+        }
         for (int a = 0, N = getEntriesCount(); a < N; a++) {
             final ListAnimator.Entry<?> entry = getEntry(a);
             final float top = getPaddingTop() + entry.getRectF().top;

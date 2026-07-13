@@ -246,8 +246,8 @@ public class ThemeColors {
         defaultColors[key_chats_nameMessageArchived_threeLines] = 0xff5e5e5e;
         defaultColors[key_chats_attachMessage] = TELEGRAM_COLOR_TEXT;
         defaultColors[key_chats_actionMessage] = TELEGRAM_COLOR_TEXT;
-        defaultColors[key_chats_date] = 0xff848688;
-        defaultColors[key_chats_date_bold] = 0xff919395;
+        defaultColors[key_chats_date] = 0xffaeb1b3;
+        defaultColors[key_chats_date_bold] = 0xffbabbbd;
         defaultColors[key_chats_pinnedOverlay] = 0x08000000;
         defaultColors[key_chats_tabletSelectedOverlay] = 0x0f000000;
         defaultColors[key_chats_sentCheck] = 0xff46aa36;
@@ -834,6 +834,41 @@ public class ThemeColors {
         defaultColors[key_telegram_color_dialogsLogo] = 0xFF168bdb;
         defaultColors[key_telegram_color] = TELEGRAM_COLOR;
         defaultColors[key_telegram_color_text] = TELEGRAM_COLOR_TEXT;
+
+        if (EINK_MODE) {
+            defaultColors[key_chat_wallpaper] = 0xffffffff;
+            defaultColors[key_chat_wallpaper_gradient_to1] = 0;
+            defaultColors[key_chat_wallpaper_gradient_to2] = 0;
+            defaultColors[key_chat_wallpaper_gradient_to3] = 0;
+            defaultColors[key_chat_inBubble] = 0xfff0f0f0;
+            defaultColors[key_chat_inBubbleSelected] = 0xffe8e8e8;
+            defaultColors[key_chat_outBubble] = 0xfff0f0f0;
+            defaultColors[key_chat_outBubbleSelected] = 0xffe8e8e8;
+            defaultColors[key_chat_outMediaIcon] = 0xfff0f0f0;
+            defaultColors[key_chat_outMediaIconSelected] = 0xffe8e8e8;
+            defaultColors[key_chat_outTimeText] = 0xff999999;
+            defaultColors[key_chat_outTimeSelectedText] = 0xff999999;
+            defaultColors[key_chat_inTimeText] = 0xff999999;
+            defaultColors[key_chat_inTimeSelectedText] = 0xff999999;
+            defaultColors[key_chat_outSentCheck] = 0xff888888;
+            defaultColors[key_chat_outSentCheckSelected] = 0xff888888;
+            defaultColors[key_chat_outSentCheckRead] = 0xff666666;
+            defaultColors[key_chat_outSentCheckReadSelected] = 0xff666666;
+            defaultColors[key_chat_outSentClock] = 0xff999999;
+            defaultColors[key_chat_outSentClockSelected] = 0xff999999;
+            defaultColors[key_chat_inSentClock] = 0xff999999;
+            defaultColors[key_chat_inSentClockSelected] = 0xff999999;
+            defaultColors[key_chat_inReplyLine] = 0xff666666;
+            defaultColors[key_chat_outReplyLine] = 0xff666666;
+            defaultColors[key_chat_inReplyNameText] = 0xff333333;
+            defaultColors[key_chat_outReplyNameText] = 0xff333333;
+            defaultColors[key_chat_inReplyMessageText] = 0xff666666;
+            defaultColors[key_chat_outReplyMessageText] = 0xff666666;
+            defaultColors[key_chat_messagePanelBackground] = 0xffffffff;
+            defaultColors[key_chat_messagePanelShadow] = 0x00000000;
+            defaultColors[key_glass_defaultIcon] = 0xff333333;
+            defaultColors[key_glass_defaultText] = 0xff333333;
+        }
 
         return defaultColors;
     }

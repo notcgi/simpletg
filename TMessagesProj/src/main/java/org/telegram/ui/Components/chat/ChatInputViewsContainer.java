@@ -4,6 +4,7 @@ import static org.telegram.messenger.AndroidUtilities.dp;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -17,6 +18,7 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 
+import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.blur3.BlurredBackgroundWithFadeDrawable;
 import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
@@ -24,16 +26,26 @@ import org.telegram.ui.Components.inset.InAppKeyboardInsetView;
 import org.telegram.ui.Components.inset.WindowInsetsProvider;
 
 public class ChatInputViewsContainer extends FrameLayout {
-    public static final int INPUT_BUBBLE_RADIUS = 22;
-    public static final int INPUT_KEYBOARD_RADIUS = 29;
+    public static final int INPUT_BUBBLE_RADIUS = Theme.EINK_MODE ? 8 : 22;
+    public static final int INPUT_KEYBOARD_RADIUS = Theme.EINK_MODE ? 8 : 29;
 
-    public static final int INPUT_BUBBLE_BOTTOM = 9;
+    public static final int INPUT_BUBBLE_BOTTOM = Theme.EINK_MODE ? 7 : 9;
 
     private WindowInsetsProvider windowInsetsProvider;
 
     private final View fadeView;
     private final FrameLayout inputIslandBubbleContainer;
     private final FrameLayout inAppKeyboardBubbleContainer;
+
+    private final Paint einkBubblePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint einkBubbleBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    {
+        einkBubblePaint.setColor(0xFFFFFFFF);
+        einkBubbleBorderPaint.setStyle(Paint.Style.STROKE);
+        einkBubbleBorderPaint.setStrokeWidth(dp(1));
+        einkBubbleBorderPaint.setColor(0xFFDDDDDD);
+    }
 
     public ChatInputViewsContainer(@NonNull Context context) {
         super(context);
@@ -249,12 +261,14 @@ public class ChatInputViewsContainer extends FrameLayout {
 
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
-        underKeyboardBackgroundDrawable.setBounds(
-            0,
-            getMeasuredHeight() - (int) imeBottomInset,
-            getMeasuredWidth(),
-            Math.max(getMeasuredHeight(), getMeasuredHeight() - (int) imeBottomInset + dp(INPUT_KEYBOARD_RADIUS * 2))
-        );
+        if (!Theme.EINK_MODE) {
+            underKeyboardBackgroundDrawable.setBounds(
+                0,
+                getMeasuredHeight() - (int) imeBottomInset,
+                getMeasuredWidth(),
+                Math.max(getMeasuredHeight(), getMeasuredHeight() - (int) imeBottomInset + dp(INPUT_KEYBOARD_RADIUS * 2))
+            );
+        }
 
         final int blurTop = getMeasuredHeight() - currentBlurredHeight;
 
@@ -264,14 +278,21 @@ public class ChatInputViewsContainer extends FrameLayout {
             getMeasuredWidth() - Math.round(inputBubbleOffsetRight),
             inputBubbleHeightRound
         );
-        tmpRect.inset(0, -dp(7));
+        tmpRect.inset(0, -dp(Theme.EINK_MODE ? 5 : 7));
         tmpRect.offset(0, blurTop + (int) bubbleInputTranlationY);
 
-        blurredBackgroundDrawable.setBounds(tmpRect);
-        blurredBackgroundDrawable.draw(canvas);
+        if (Theme.EINK_MODE) {
+            tmpRectF.set(tmpRect);
+            final float r = dp(INPUT_BUBBLE_RADIUS);
+            canvas.drawRoundRect(tmpRectF, r, r, einkBubblePaint);
+            canvas.drawRoundRect(tmpRectF, r, r, einkBubbleBorderPaint);
+        } else {
+            blurredBackgroundDrawable.setBounds(tmpRect);
+            blurredBackgroundDrawable.draw(canvas);
 
-        if (needDrawInAppKeyboard) {
-            underKeyboardBackgroundDrawable.draw(canvas);
+            if (needDrawInAppKeyboard) {
+                underKeyboardBackgroundDrawable.draw(canvas);
+            }
         }
 
         super.dispatchDraw(canvas);

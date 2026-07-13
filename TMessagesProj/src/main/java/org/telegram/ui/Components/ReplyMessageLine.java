@@ -526,6 +526,11 @@ public class ReplyMessageLine {
     }
 
     public void drawLine(Canvas canvas, RectF rect, float alpha) {
+        if (Theme.EINK_MODE) {
+            color1Paint.setColor(Theme.multAlpha(color1Animated.set(color1), alpha));
+            canvas.drawRect(rect.left, rect.top, rect.left + dp(2), rect.bottom, color1Paint);
+            return;
+        }
         canvas.save();
 
         clipPath.rewind();
@@ -652,6 +657,9 @@ public class ReplyMessageLine {
     }
 
     public void drawBackground(Canvas canvas, RectF rect, float alpha, boolean hasQuote, boolean emojiOnly) {
+        if (Theme.EINK_MODE) {
+            return;
+        }
         if (!emojiOnly) {
             backgroundPath.rewind();
             backgroundPath.addRoundRect(rect, radii, Path.Direction.CW);
