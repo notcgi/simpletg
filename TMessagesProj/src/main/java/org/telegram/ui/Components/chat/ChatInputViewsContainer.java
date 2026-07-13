@@ -39,12 +39,14 @@ public class ChatInputViewsContainer extends FrameLayout {
 
     private final Paint einkBubblePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint einkBubbleBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint einkKeyboardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     {
         einkBubblePaint.setColor(0xFFFFFFFF);
         einkBubbleBorderPaint.setStyle(Paint.Style.STROKE);
         einkBubbleBorderPaint.setStrokeWidth(dp(1));
         einkBubbleBorderPaint.setColor(0xFFDDDDDD);
+        einkKeyboardPaint.setColor(0xFFFFFFFF);
     }
 
     public ChatInputViewsContainer(@NonNull Context context) {
@@ -286,6 +288,11 @@ public class ChatInputViewsContainer extends FrameLayout {
             final float r = dp(INPUT_BUBBLE_RADIUS);
             canvas.drawRoundRect(tmpRectF, r, r, einkBubblePaint);
             canvas.drawRoundRect(tmpRectF, r, r, einkBubbleBorderPaint);
+            if (needDrawInAppKeyboard) {
+                final int kr = dp(INPUT_KEYBOARD_RADIUS);
+                tmpRectF.set(0, getMeasuredHeight() - imeBottomInset, getMeasuredWidth(), getMeasuredHeight());
+                canvas.drawRoundRect(tmpRectF, kr, kr, einkKeyboardPaint);
+            }
         } else {
             blurredBackgroundDrawable.setBounds(tmpRect);
             blurredBackgroundDrawable.draw(canvas);
@@ -303,7 +310,11 @@ public class ChatInputViewsContainer extends FrameLayout {
         final boolean needClip = child == inAppKeyboardBubbleContainer;
         if (needClip) {
             canvas.save();
-            canvas.clipPath(underKeyboardBackgroundDrawable.getPath());
+            if (Theme.EINK_MODE) {
+                canvas.clipPath(underKeyboardPath);
+            } else {
+                canvas.clipPath(underKeyboardBackgroundDrawable.getPath());
+            }
         }
 
         final boolean result = super.drawChild(canvas, child, drawingTime);

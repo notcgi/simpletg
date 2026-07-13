@@ -4646,38 +4646,40 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         });
         searchTabsAndFiltersLayout.addView(filtersView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP));
 
-        floatingButtonStories = new FragmentFloatingButton(context, resourceProvider, true);
-        floatingButtonStories.setContentDescription(getString(R.string.StoryPrivacyButtonPost));
-        floatingButtonStories.setImageResource(R.drawable.outline_fab_story_24);
-        floatingButtonStories.setOnClickListener(v -> openStoriesRecorder());
-        contentView.addView(floatingButtonStories, FragmentFloatingButton.createSubButtonLayoutParams());
+        if (!Theme.EINK_MODE) {
+            floatingButtonStories = new FragmentFloatingButton(context, resourceProvider, true);
+            floatingButtonStories.setContentDescription(getString(R.string.StoryPrivacyButtonPost));
+            floatingButtonStories.setImageResource(R.drawable.outline_fab_story_24);
+            floatingButtonStories.setOnClickListener(v -> openStoriesRecorder());
+            contentView.addView(floatingButtonStories, FragmentFloatingButton.createSubButtonLayoutParams());
 
-        floatingButton3 = new FragmentFloatingButton(context, resourceProvider);
-        contentView.addView(floatingButton3, FragmentFloatingButton.createDefaultLayoutParams());
-        floatingButton3.setOnClickListener(v -> {
-            if (parentLayout != null && parentLayout.isInPreviewMode()) {
-                finishPreviewFragment();
-                return;
-            }
-            if (initialDialogsType == DIALOGS_TYPE_WIDGET) {
-                if (delegate == null || selectedDialogs.isEmpty()) {
+            floatingButton3 = new FragmentFloatingButton(context, resourceProvider);
+            contentView.addView(floatingButton3, FragmentFloatingButton.createDefaultLayoutParams());
+            floatingButton3.setOnClickListener(v -> {
+                if (parentLayout != null && parentLayout.isInPreviewMode()) {
+                    finishPreviewFragment();
                     return;
                 }
-                ArrayList<MessagesStorage.TopicKey> topicKeys = new ArrayList<>();
-                for (int i = 0; i < selectedDialogs.size(); i++) {
-                    topicKeys.add(MessagesStorage.TopicKey.of(selectedDialogs.get(i), 0));
+                if (initialDialogsType == DIALOGS_TYPE_WIDGET) {
+                    if (delegate == null || selectedDialogs.isEmpty()) {
+                        return;
+                    }
+                    ArrayList<MessagesStorage.TopicKey> topicKeys = new ArrayList<>();
+                    for (int i = 0; i < selectedDialogs.size(); i++) {
+                        topicKeys.add(MessagesStorage.TopicKey.of(selectedDialogs.get(i), 0));
+                    }
+                    delegate.didSelectDialogs(DialogsActivity.this, topicKeys, null, false, notify, scheduleDate, scheduleRepeatPeriod, null);
+                } else {
+                    if (MessagesController.getInstance(currentAccount).isFrozen()) {
+                        AccountFrozenAlert.show(currentAccount);
+                        return;
+                    }
+                    openWriteContacts();
                 }
-                delegate.didSelectDialogs(DialogsActivity.this, topicKeys, null, false, notify, scheduleDate, scheduleRepeatPeriod, null);
-            } else {
-                if (MessagesController.getInstance(currentAccount).isFrozen()) {
-                    AccountFrozenAlert.show(currentAccount);
-                    return;
-                }
-                openWriteContacts();
-            }
-        });
+            });
+        }
 
-        if (!isArchive() && initialDialogsType == DIALOGS_TYPE_DEFAULT) {
+        if (!Theme.EINK_MODE && !isArchive() && initialDialogsType == DIALOGS_TYPE_DEFAULT) {
             if (MessagesController.getInstance(currentAccount).getMainSettings().getBoolean("storyhint", true)) {
                 storyHint = new HintView2(context, HintView2.DIRECTION_RIGHT)
                         .setRounding(8)
@@ -5290,7 +5292,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             avatarContainer.setOccupyStatusBar(false);
             avatarContainer.setLeftPadding(dp(10));
             actionBar.addView(avatarContainer, 0, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT, 0, 0, 40, 0));
-            floatingButton3.imageView.setVisibility(View.INVISIBLE);
+            if (floatingButton3 != null) {
+                floatingButton3.imageView.setVisibility(View.INVISIBLE);
+            }
             actionBar.setOccupyStatusBar(false);
             actionBar.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
             if (fragmentContextViewWrapper != null) {
@@ -7343,7 +7347,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             actionBar.removeView(avatarContainer);
             avatarContainer = null;
             updateFilterTabs(false, false);
-            floatingButton3.imageView.setVisibility(View.VISIBLE);
+            if (floatingButton3 != null) {
+                floatingButton3.imageView.setVisibility(View.VISIBLE);
+            }
             if (topPanelLayout != null) {
                 if (fragmentContextViewWrapper != null) {
                     topPanelLayout.addView(fragmentContextViewWrapper);
@@ -8723,7 +8729,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateFloatingButtonVisibility(boolean animated) {
-        if (hasMainTabs && !mainTabsChatsTabVisible) {
+        if (Theme.EINK_MODE || (hasMainTabs && !mainTabsChatsTabVisible)) {
             hideDialogsFloatingButtons();
             return;
         }

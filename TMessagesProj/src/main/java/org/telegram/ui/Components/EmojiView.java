@@ -2916,32 +2916,52 @@ public class EmojiView extends FrameLayout implements
 
     public void setBlurredBackgroundDrawableFactory(BlurredBackgroundDrawableViewFactory factory) {
         if (backspaceButton != null) {
-            backspaceButton.setBackground(factory.create(backspaceButton)
-                .setColorProvider(BlurredBackgroundProviderImpl.emojiViewButton(resourcesProvider))
-                .setRadius(dp(18))
-                .setPadding(dp(6)));
+            if (Theme.EINK_MODE) {
+                backspaceButton.setBackground(createEinkEmojiButtonBackground());
+            } else {
+                backspaceButton.setBackground(factory.create(backspaceButton)
+                    .setColorProvider(BlurredBackgroundProviderImpl.emojiViewButton(resourcesProvider))
+                    .setRadius(dp(18))
+                    .setPadding(dp(6)));
+            }
         }
 
         if (searchButton != null) {
-            searchButton.setBackground(factory.create(searchButton)
-                .setColorProvider(BlurredBackgroundProviderImpl.emojiViewButton(resourcesProvider))
-                .setRadius(dp(18))
-                .setPadding(dp(6)));
+            if (Theme.EINK_MODE) {
+                searchButton.setBackground(createEinkEmojiButtonBackground());
+            } else {
+                searchButton.setBackground(factory.create(searchButton)
+                    .setColorProvider(BlurredBackgroundProviderImpl.emojiViewButton(resourcesProvider))
+                    .setRadius(dp(18))
+                    .setPadding(dp(6)));
+            }
         }
 
         if (typeTabs != null) {
-            typeTabs.setBackground(factory.create(typeTabs)
-                .setColorProvider(BlurredBackgroundProviderImpl.emojiViewButton(resourcesProvider))
-                .setRadius(dp(18))
-                .setPadding(dp(6)));
+            if (Theme.EINK_MODE) {
+                typeTabs.setBackground(createEinkEmojiButtonBackground());
+            } else {
+                typeTabs.setBackground(factory.create(typeTabs)
+                    .setColorProvider(BlurredBackgroundProviderImpl.emojiViewButton(resourcesProvider))
+                    .setRadius(dp(18))
+                    .setPadding(dp(6)));
+            }
         }
 
         if (stickerSettingsButton != null) {
-            stickerSettingsButton.setBackground(factory.create(stickerSettingsButton)
-                .setColorProvider(BlurredBackgroundProviderImpl.emojiViewButton(resourcesProvider))
-                .setRadius(dp(18))
-                .setPadding(dp(6)));
+            if (Theme.EINK_MODE) {
+                stickerSettingsButton.setBackground(createEinkEmojiButtonBackground());
+            } else {
+                stickerSettingsButton.setBackground(factory.create(stickerSettingsButton)
+                    .setColorProvider(BlurredBackgroundProviderImpl.emojiViewButton(resourcesProvider))
+                    .setRadius(dp(18))
+                    .setPadding(dp(6)));
+            }
         }
+    }
+
+    private Drawable createEinkEmojiButtonBackground() {
+        return Theme.createRoundRectDrawable(dp(18), getThemedColor(Theme.key_chat_emojiPanelBackground));
     }
 
 

@@ -3108,15 +3108,24 @@ public class ChatActivityEnterView extends FrameLayout implements
 
                     final float r = Theme.EINK_MODE ? dpf2(8) : dpf2(19);
                     paint.setColor(getThemedColor(Theme.key_chat_messagePanelSend));
-                    final float margin = dpf2(3);
                     final float height = Theme.EINK_MODE ? dpf2(32) : dpf2(38);
-                    final float width = dpf2(38);
-                    backgroundRect.set(
-                            getMeasuredWidth() - width - margin,
-                            getMeasuredHeight() - height - margin,
-                            getMeasuredWidth() - margin,
-                            getMeasuredHeight() - margin
-                    );
+                    final float width = Theme.EINK_MODE ? height : dpf2(38);
+                    if (Theme.EINK_MODE) {
+                        backgroundRect.set(
+                                (getMeasuredWidth() - width) / 2f,
+                                (getMeasuredHeight() - height) / 2f,
+                                (getMeasuredWidth() + width) / 2f,
+                                (getMeasuredHeight() + height) / 2f
+                        );
+                    } else {
+                        final float margin = dpf2(3);
+                        backgroundRect.set(
+                                getMeasuredWidth() - width - margin,
+                                getMeasuredHeight() - height - margin,
+                                getMeasuredWidth() - margin,
+                                getMeasuredHeight() - margin
+                        );
+                    }
 
                     canvas.save();
                     canvas.scale(s, s, backgroundRect.centerX(), backgroundRect.centerY());
@@ -3305,7 +3314,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         cameraOutline = getResources().getDrawable(R.drawable.input_video).mutate();
         cameraOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
 
-        audioVideoSendButton = new ChatActivityEnterViewAnimatedIconView(context, 24) {
+        audioVideoSendButton = new ChatActivityEnterViewAnimatedIconView(context, Theme.EINK_MODE ? 20 : 24) {
             private final Rect tmpRectF = new Rect();
             @Override
             public void draw(@NonNull Canvas canvas) {
@@ -3323,7 +3332,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         audioVideoSendButton.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
 //        audioVideoSendButton.setFocusable(true);
 //        audioVideoSendButton.setAccessibilityDelegate(mediaMessageButtonsDelegate);
-        padding = dp(10f);
+        padding = dp(Theme.EINK_MODE ? 8 : 10f);
         audioVideoSendButton.setPadding(padding, padding, padding, padding);
         audioVideoButtonContainer.addView(audioVideoSendButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT));
 
@@ -11191,7 +11200,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         if (emojiView != null) {
             return;
         }
-        emojiView = new EmojiView(parentFragment, allowAnimatedEmoji, true, true, getContext(), true, info, sizeNotifierLayout, shouldDrawBackground, resourcesProvider, emojiViewFrozen, windowInsetsInAppController != null) {
+        emojiView = new EmojiView(parentFragment, allowAnimatedEmoji, true, true, getContext(), true, info, sizeNotifierLayout, shouldDrawBackground, resourcesProvider, emojiViewFrozen, windowInsetsInAppController != null && !Theme.EINK_MODE) {
             @Override
             public void setTranslationY(float translationY) {
                 super.setTranslationY(translationY);
@@ -11209,7 +11218,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         emojiView.setShowing(false);
         if (windowInsetsInAppController != null) {
             emojiView.shouldLightenBackground = false;
-            emojiView.setShouldDrawBackground(false);
+            if (!Theme.EINK_MODE) {
+                emojiView.setShouldDrawBackground(false);
+            }
             emojiView.isNewHeightControl = true;
         }
         emojiView.setDelegate(new EmojiView.EmojiViewDelegate() {
@@ -14728,18 +14739,27 @@ public class ChatActivityEnterView extends FrameLayout implements
         /* * */
 
         private final RectF backgroundRect = new RectF();
-        private static final int RADIUS = 19;
+        private static final int RADIUS = Theme.EINK_MODE ? 8 : 19;
 
         private void checkBackgroundRect() {
-            final float margin = dpf2(3);
-            final float height = dpf2(38);
-            final float width = Math.max(height, dpf2(10 + 10) + priceText.getCurrentWidth());
-            backgroundRect.set(
-                    getMeasuredWidth() - width - margin,
-                    getMeasuredHeight() - height - margin,
-                    getMeasuredWidth() - margin,
-                    getMeasuredHeight() - margin
-            );
+            final float height = dpf2(Theme.EINK_MODE ? 32 : 38);
+            final float width = Math.max(height, dpf2(Theme.EINK_MODE ? (8 + 8) : (10 + 10)) + priceText.getCurrentWidth());
+            if (Theme.EINK_MODE) {
+                backgroundRect.set(
+                        (getMeasuredWidth() - width) / 2f,
+                        (getMeasuredHeight() - height) / 2f,
+                        (getMeasuredWidth() + width) / 2f,
+                        (getMeasuredHeight() + height) / 2f
+                );
+            } else {
+                final float margin = dpf2(3);
+                backgroundRect.set(
+                        getMeasuredWidth() - width - margin,
+                        getMeasuredHeight() - height - margin,
+                        getMeasuredWidth() - margin,
+                        getMeasuredHeight() - margin
+                );
+            }
         }
     }
 

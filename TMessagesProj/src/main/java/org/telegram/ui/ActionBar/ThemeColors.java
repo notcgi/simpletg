@@ -866,6 +866,13 @@ public class ThemeColors {
             defaultColors[key_chat_outReplyMessageText] = 0xff666666;
             defaultColors[key_chat_messagePanelBackground] = 0xffffffff;
             defaultColors[key_chat_messagePanelShadow] = 0x00000000;
+            defaultColors[key_chat_emojiPanelBackground] = 0xffffffff;
+            defaultColors[key_chat_emojiSearchBackground] = 0xfff0f0f0;
+            defaultColors[key_chat_emojiPanelIcon] = 0xff666666;
+            defaultColors[key_chat_emojiBottomPanelIcon] = 0xff666666;
+            defaultColors[key_chat_emojiPanelIconSelected] = 0xff333333;
+            defaultColors[key_chat_emojiPanelBackspace] = 0xff666666;
+            defaultColors[key_chat_emojiSearchIcon] = 0xff888888;
             defaultColors[key_glass_defaultIcon] = 0xff333333;
             defaultColors[key_glass_defaultText] = 0xff333333;
         }
