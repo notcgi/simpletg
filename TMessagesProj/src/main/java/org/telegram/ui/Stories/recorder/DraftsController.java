@@ -95,8 +95,7 @@ public class DraftsController {
 
     private boolean loaded, loading;
     public void load() {
-        // Stories removed.
-        if (true) {
+        if (!BuildVars.STORIES) {
             return;
         }
         if (loaded || loading) {

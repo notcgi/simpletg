@@ -6366,7 +6366,7 @@ public class ChatActivity extends BaseFragment implements
         paddingTopHeight = 0;
         botDraftHeightController.setRecyclerView(chatListView);
         invalidateChatListViewTopPadding();
-        if (MessagesController.getGlobalMainSettings().getBoolean("view_animations", true)) {
+        if (SharedConfig.animationsEnabled()) {
             chatListItemAnimator = new ChatListItemAnimator(this, chatListView, themeDelegate) {
 
                 Runnable finishRunnable;
@@ -40871,10 +40871,11 @@ public class ChatActivity extends BaseFragment implements
         public void didPressImage(ChatMessageCell cell, float x, float y, boolean fullPreview) {
             MessageObject message = cell.getMessageObject();
             if (message.type == MessageObject.TYPE_STORY) {
-                // Stories removed.
-                return;
+                if (!BuildVars.STORIES) {
+                    return;
+                }
             }
-            if (false && message.type == MessageObject.TYPE_STORY) {
+            if (BuildVars.STORIES && message.type == MessageObject.TYPE_STORY) {
                 if (message.messageOwner.media.storyItem != null && !(message.messageOwner.media.storyItem instanceof TL_stories.TL_storyItemDeleted)) {
                     TL_stories.StoryItem storyItem = message.messageOwner.media.storyItem;
                     storyItem.dialogId = DialogObject.getPeerDialogId(message.messageOwner.media.peer);

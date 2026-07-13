@@ -1061,15 +1061,11 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         actionBar.setAdaptiveBackground(listView);
         listView.setOnItemClickListener((view, position, x, y) -> {
             if (position == enableAnimationsRow) {
-                SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-                boolean animations = preferences.getBoolean("view_animations", true);
-                SharedPreferences.Editor editor = preferences.edit();
-                editor.putBoolean("view_animations", !animations);
-                SharedConfig.setAnimationsEnabled(!animations);
-                editor.commit();
+                // E-ink: animations permanently disabled.
                 if (view instanceof TextCheckCell) {
-                    ((TextCheckCell) view).setChecked(!animations);
+                    ((TextCheckCell) view).setChecked(false);
                 }
+                return;
             } else if (position == backgroundRow) {
                 // Chat wallpaper picker disabled: backgrounds are always solid white.
                 return;
@@ -2557,8 +2553,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                     if (position == scheduleLocationRow) {
                         textCheckCell.setTextAndCheck(getString("AutoNightLocation", R.string.AutoNightLocation), Theme.autoNightScheduleByLocation, true);
                     } else if (position == enableAnimationsRow) {
-                        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-                        textCheckCell.setTextAndCheck(getString("EnableAnimations", R.string.EnableAnimations), preferences.getBoolean("view_animations", true), true);
+                        textCheckCell.setTextAndCheck(getString("EnableAnimations", R.string.EnableAnimations), false, true);
                     } else if (position == sendByEnterRow) {
                         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
                         textCheckCell.setTextAndCheck(getString("SendByEnter", R.string.SendByEnter), preferences.getBoolean("send_by_enter", false), true);

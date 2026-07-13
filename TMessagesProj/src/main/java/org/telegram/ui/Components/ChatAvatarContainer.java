@@ -186,11 +186,10 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
             StoriesUtilities.AvatarStoryParams params = new StoriesUtilities.AvatarStoryParams(true) {
                 @Override
                 public void openStory(long dialogId, Runnable onDone) {
-                    // Stories removed.
                     if (onDone != null) {
                         onDone.run();
                     }
-                    if (true) {
+                    if (!BuildVars.STORIES) {
                         return;
                     }
                     baseFragment.getOrCreateStoryViewer().open(getContext(), dialogId, (dialogId1, messageId, storyId, type, holder) -> {

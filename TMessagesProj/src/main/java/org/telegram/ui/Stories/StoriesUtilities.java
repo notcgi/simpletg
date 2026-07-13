@@ -96,11 +96,15 @@ public class StoriesUtilities {
     private final static RectF rectTmp = new RectF();
 
     public static void drawAvatarWithStory(long dialogId, Canvas canvas, ImageReceiver avatarImage, AvatarStoryParams params) {
-        // Stories removed: draw avatar without story ring.
-        if (params != null && params.originalAvatarRect != null) {
-            avatarImage.setImageCoords(params.originalAvatarRect);
+        if (!BuildVars.STORIES) {
+            if (params != null && params.originalAvatarRect != null) {
+                avatarImage.setImageCoords(params.originalAvatarRect);
+            }
+            avatarImage.draw(canvas);
+            return;
         }
-        avatarImage.draw(canvas);
+        boolean hasStories = MessagesController.getInstance(UserConfig.selectedAccount).getStoriesController().hasStories(dialogId);
+        drawAvatarWithStory(dialogId, canvas, avatarImage, UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId() != dialogId && hasStories, params);
     }
 
     static boolean scheduled = false;
@@ -121,11 +125,14 @@ public class StoriesUtilities {
     };
 
     public static void drawAvatarWithStory(long dialogId, Canvas canvas, ImageReceiver avatarImage, boolean hasStories, AvatarStoryParams params) {
-        // Stories removed: draw avatar without story ring.
-        if (params != null && params.originalAvatarRect != null) {
-            avatarImage.setImageCoords(params.originalAvatarRect);
+        if (!BuildVars.STORIES) {
+            if (params != null && params.originalAvatarRect != null) {
+                avatarImage.setImageCoords(params.originalAvatarRect);
+            }
+            avatarImage.draw(canvas);
+            return;
         }
-        avatarImage.draw(canvas);
+        drawAvatarWithStoryInternal(dialogId, canvas, avatarImage, hasStories, params);
     }
 
     private static void drawAvatarWithStoryInternal(long dialogId, Canvas canvas, ImageReceiver avatarImage, boolean hasStories, AvatarStoryParams params) {
@@ -1290,8 +1297,10 @@ public class StoriesUtilities {
         public View child;
 
         public boolean checkOnTouchEvent(MotionEvent event, View view) {
-            // Stories removed: never intercept avatar taps for story viewer.
-            return false;
+            if (!BuildVars.STORIES) {
+                return false;
+            }
+            return checkOnTouchEventInternal(event, view);
         }
 
         private boolean checkOnTouchEventInternal(MotionEvent event, View view) {

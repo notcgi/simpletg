@@ -188,12 +188,13 @@ public class StoriesController {
     }
 
     public void loadAllStories() {
-        // Stories removed.
+        if (!BuildVars.STORIES) {
+            return;
+        }
     }
 
     private void loadStoriesRead() {
-        // Stories removed.
-        if (true) {
+        if (!BuildVars.STORIES) {
             return;
         }
         if (storiesReadLoaded) {
@@ -250,6 +251,9 @@ public class StoriesController {
     }
 
     public boolean hasStories(long dialogId) {
+        if (!BuildVars.STORIES) {
+            return false;
+        }
         return false;
     }
 
@@ -270,12 +274,14 @@ public class StoriesController {
     }
 
     public boolean hasStories() {
+        if (!BuildVars.STORIES) {
+            return false;
+        }
         return false;
     }
 
     public void loadStories() {
-        // Stories removed.
-        if (true) {
+        if (!BuildVars.STORIES) {
             return;
         }
         if (firstLoad) {
@@ -597,8 +603,7 @@ public class StoriesController {
     }
 
     public void uploadStory(StoryEntry entry, boolean count) {
-        // Stories removed.
-        if (true) {
+        if (!BuildVars.STORIES) {
             return;
         }
         UploadingStory uploadingStory = new UploadingStory(entry);
@@ -661,8 +666,7 @@ public class StoriesController {
     }
 
     public void putUploadingDrafts(ArrayList<StoryEntry> entries) {
-        // Stories removed.
-        if (true) {
+        if (!BuildVars.STORIES) {
             return;
         }
         for (StoryEntry entry : entries) {
@@ -795,8 +799,7 @@ public class StoriesController {
     }
 
     public void processUpdate(TL_stories.TL_updateStory updateStory) {
-        // Stories removed: ignore story updates for product UX.
-        if (true) {
+        if (!BuildVars.STORIES) {
             return;
         }
         //stage queue

@@ -71,6 +71,12 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
         translationInterpolator = DEFAULT_INTERPOLATOR;
         alwaysCreateMoveAnimationIfPossible = true;
         setSupportsChangeAnimations(false);
+        if (!SharedConfig.animationsEnabled()) {
+            setAddDuration(0);
+            setRemoveDuration(0);
+            setMoveDuration(0);
+            setChangeDuration(0);
+        }
     }
 
     @Override

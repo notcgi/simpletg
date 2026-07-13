@@ -2913,7 +2913,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
             dialogs.clear();
             dialogsMap.clear();
             long selfUserId = UserConfig.getInstance(currentAccount).clientUserId;
-            if (false && includeStory) {
+            if (BuildVars.STORIES && includeStory) {
                 MyStoryDialog d = new MyStoryDialog();
                 dialogs.add(d);
                 dialogsMap.put(d.id, d);

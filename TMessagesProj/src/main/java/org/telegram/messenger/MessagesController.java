@@ -1703,8 +1703,8 @@ public class MessagesController extends BaseController implements NotificationCe
         starsGroupcallMessageLimits = parseTiersString(mainPreferences.getString("starsGroupcallMessageLimits", null));
         freezeAppealUrl = mainPreferences.getString("freezeAppealUrl", "t.me/spambot");
         enableGiftsInProfile = mainPreferences.getBoolean("enableGiftsInProfile", true);
-        storiesPosting = mainPreferences.getString("storiesPosting", "enabled");
-        storiesEntities = mainPreferences.getString("storiesEntities", "premium");
+        storiesPosting = BuildVars.STORIES ? mainPreferences.getString("storiesPosting", "enabled") : "disabled";
+        storiesEntities = BuildVars.STORIES ? mainPreferences.getString("storiesEntities", "premium") : "disabled";
         storiesExportNopublicLink = mainPreferences.getBoolean("storiesExportNopublicLink", false);
         authorizationAutoconfirmPeriod = mainPreferences.getInt("authorization_autoconfirm_period", 604800);
         quoteLengthMax = mainPreferences.getInt("quoteLengthMax", 1024);
@@ -2182,7 +2182,8 @@ public class MessagesController extends BaseController implements NotificationCe
             }
 
             AndroidUtilities.runOnUIThread(() -> {
-                if (remote != 2) {
+                final boolean applyFilters = remote != 2 || dialogFilters.isEmpty() || dialogFilters.size() != filters.size();
+                if (applyFilters) {
                     dialogFilters = filters;
                     dialogFiltersById.clear();
                     for (int a = 0, N = dialogFilters.size(); a < N; a++) {
@@ -4035,7 +4036,7 @@ public class MessagesController extends BaseController implements NotificationCe
                 case "stories_posting": {
                     if (value.value instanceof TLRPC.TL_jsonString) {
                         TLRPC.TL_jsonString str = (TLRPC.TL_jsonString) value.value;
-                        String newValue = "disabled";
+                        String newValue = BuildVars.STORIES ? str.value : "disabled";
                         if (!TextUtils.equals(newValue, storiesPosting)) {
                             storiesPosting = newValue;
                             editor.putString("storiesPosting", storiesPosting);
@@ -4047,7 +4048,7 @@ public class MessagesController extends BaseController implements NotificationCe
                 case "stories_entities": {
                     if (value.value instanceof TLRPC.TL_jsonString) {
                         TLRPC.TL_jsonString str = (TLRPC.TL_jsonString) value.value;
-                        String newValue = "disabled";
+                        String newValue = BuildVars.STORIES ? str.value : "disabled";
                         if (!TextUtils.equals(newValue, storiesEntities)) {
                             storiesEntities = newValue;
                             editor.putString("storiesEntities", storiesEntities);
@@ -18411,7 +18412,9 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
                 chatInfoToUpdate.add(update.participants);
             } else if (baseUpdate instanceof TL_stories.TL_updateStory) {
-                // Stories removed: do not drive UX from story updates.
+                if (BuildVars.STORIES) {
+                    getStoriesController().processUpdate((TL_stories.TL_updateStory) baseUpdate);
+                }
             } else if (baseUpdate instanceof TL_update.TL_updateUserStatus) {
                 interfaceUpdateMask |= UPDATE_MASK_STATUS;
                 if (updatesOnMainThread == null) {
@@ -19993,7 +19996,9 @@ public class MessagesController extends BaseController implements NotificationCe
                             }
                         }
                     } else if (baseUpdate instanceof TL_update.TL_updateSentStoryReaction) {
-                        // Stories removed.
+                        if (BuildVars.STORIES) {
+                            // story reaction updates handled when stories are enabled
+                        }
 
                     } else if (baseUpdate instanceof TL_update.TL_updateChannelViewForumAsMessages) {
                         TL_update.TL_updateChannelViewForumAsMessages update = (TL_update.TL_updateChannelViewForumAsMessages) baseUpdate;
@@ -22743,15 +22748,37 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean storiesEnabled() {
-        return false;
+        if (!BuildVars.STORIES) {
+            return false;
+        }
+        switch (storiesPosting) {
+            case "premium":
+                return getUserConfig().isPremium();
+            case "enabled":
+                return true;
+            default:
+            case "disabled":
+                return false;
+        }
     }
 
     public boolean storyEntitiesAllowed() {
-        return false;
+        if (!BuildVars.STORIES) {
+            return false;
+        }
+        switch (storiesEntities) {
+            case "premium":
+                return getUserConfig().isPremium();
+            case "enabled":
+                return true;
+            default:
+            case "disabled":
+                return false;
+        }
     }
 
     public boolean storyEntitiesAllowed(TLRPC.User user) {
-        return false;
+        return storyEntitiesAllowed();
     }
 
     public static class ChannelRecommendations {

@@ -3834,6 +3834,9 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
     }
 
     protected boolean includeStories() {
+        if (!BuildVars.STORIES) {
+            return false;
+        }
         return false;
     }
 

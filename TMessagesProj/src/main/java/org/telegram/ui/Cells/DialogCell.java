@@ -159,6 +159,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     public static final int SENT_STATE_SENT = 1;
     public static final int SENT_STATE_READ = 2;
     public boolean drawAvatar = false;
+    public boolean drawMessageThumbs = false;
     public boolean drawMonoforumAvatar = false;
     private boolean isShareToStoryCell;
     public ShareDialogCell.RepostStoryDrawable repostStoryDrawable;
@@ -5456,6 +5457,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     }
 
     public void updateMessageThumbs() {
+        if (!drawMessageThumbs) {
+            return;
+        }
         if (message == null) {
             return;
         }

@@ -5588,7 +5588,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         };
         mediaCounterTextView.setAlpha(0.0f);
         avatarContainer2.addView(mediaCounterTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP, 109.33f, -2, 8, 0));
-        if (false) {
+        if (BuildVars.STORIES) {
         storyView = new ProfileStoriesView(context, currentAccount, getDialogId(), isTopic, avatarContainer, avatarImage, resourcesProvider) {
             @Override
             protected void onTap(StoryViewer.PlaceProvider provider) {
@@ -9576,7 +9576,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             needTimerImage = type != 0;
             needStarImage = type != 0;
             updateStar();
-            if (preferences.getBoolean("view_animations", true)) {
+            if (preferences.getBoolean("view_animations", true) && SharedConfig.animationsEnabled()) {
                 playProfileAnimation = type;
             } else if (type == 2) {
                 expandPhoto = true;
@@ -10226,6 +10226,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private boolean needInsetForStories() {
+        if (!BuildVars.STORIES) {
+            return false;
+        }
         return false;
     }
 

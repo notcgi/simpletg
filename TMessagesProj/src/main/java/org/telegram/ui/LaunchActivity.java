@@ -2986,10 +2986,10 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 }
             }
 
-            if (false && push_story_id > 0) {
-                // Stories removed.
-            } else if (false && push_story_dids != null) {
-                // Stories removed.
+            if (BuildVars.STORIES && push_story_id > 0) {
+                // handled below when STORIES enabled
+            } else if (BuildVars.STORIES && push_story_dids != null) {
+                // handled below when STORIES enabled
             } else if (push_user_id != 0) {
                 if (audioCallUser || videoCallUser) {
                     if (needCallAlert) {
@@ -4269,7 +4269,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                 storyViewer.open(this, storyItem, null);
                             }
                         });
-                    } else if (false && storyId != 0 && peerId != null) {
+                    } else if (BuildVars.STORIES && storyId != 0 && peerId != null) {
                         hideProgressDialog = false;
                         MessagesController.getInstance(currentAccount).getStoriesController().resolveStoryLink(peerId, storyId, storyItem -> {
                             try {
@@ -6143,7 +6143,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
 
     @Override
     public boolean didSelectStories(DialogsActivity dialogsFragment) {
-        // Stories removed.
+        if (!BuildVars.STORIES) {
+            return false;
+        }
         return false;
     }
 
@@ -8869,8 +8871,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     private void openStory(long dialogId, final int storyId, boolean openViews) {
-        // Stories removed.
-        if (true) {
+        if (!BuildVars.STORIES) {
             return;
         }
         StoriesController storiesController = MessagesController.getInstance(currentAccount).getStoriesController();

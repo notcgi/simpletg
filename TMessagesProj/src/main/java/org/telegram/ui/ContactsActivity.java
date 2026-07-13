@@ -550,9 +550,9 @@ public class ContactsActivity extends BaseFragment implements FactorAnimator.Tar
 
         DefaultItemAnimator defaultItemAnimator = new DefaultItemAnimator();
         defaultItemAnimator.setDelayAnimations(false);
-        defaultItemAnimator.setDurations(150);
+        defaultItemAnimator.setDurations(SharedConfig.animationsEnabled() ? 150 : 0);
         defaultItemAnimator.setSupportsChangeAnimations(false);
-        listView.setItemAnimator(defaultItemAnimator);
+        listView.setItemAnimator(SharedConfig.animationsEnabled() ? defaultItemAnimator : null);
         listView.setSectionsType(RecyclerListView.SECTIONS_TYPE_STICKY_HEADERS);
         listView.setVerticalScrollBarEnabled(false);
         listView.setFastScrollEnabled(RecyclerListView.FastScroll.LETTER_TYPE);

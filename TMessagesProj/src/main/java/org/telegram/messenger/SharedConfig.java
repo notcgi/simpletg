@@ -1776,15 +1776,24 @@ public class SharedConfig {
 
     private static Boolean animationsEnabled;
 
+    /** E-ink: animations are permanently disabled (not user-toggleable). */
     public static void setAnimationsEnabled(boolean b) {
-        animationsEnabled = b;
+        animationsEnabled = false;
+        try {
+            MessagesController.getGlobalMainSettings().edit().putBoolean("view_animations", false).apply();
+        } catch (Throwable ignore) {
+        }
     }
 
     public static boolean animationsEnabled() {
-        if (animationsEnabled == null) {
-            animationsEnabled = MessagesController.getGlobalMainSettings().getBoolean("view_animations", true);
+        if (animationsEnabled == null || animationsEnabled) {
+            animationsEnabled = false;
+            try {
+                MessagesController.getGlobalMainSettings().edit().putBoolean("view_animations", false).apply();
+            } catch (Throwable ignore) {
+            }
         }
-        return animationsEnabled;
+        return false;
     }
 
     public static SharedPreferences getPreferences() {

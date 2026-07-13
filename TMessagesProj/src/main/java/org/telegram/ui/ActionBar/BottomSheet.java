@@ -66,6 +66,7 @@ import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.camera.CameraView;
@@ -1734,15 +1735,20 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
             animators.add(navigationBarAnimation);
             appendOpenAnimator(true, animators);
             currentSheetAnimation.playTogether(animators);
-            if (transitionFromRight) {
+            if (!SharedConfig.animationsEnabled()) {
+                currentSheetAnimation.setDuration(0);
+                currentSheetAnimation.setStartDelay(0);
+            } else if (transitionFromRight) {
                 currentSheetAnimation.setDuration(250);
                 currentSheetAnimation.setInterpolator(CubicBezierInterpolator.DEFAULT);
             } else {
                 currentSheetAnimation.setDuration(400);
                 currentSheetAnimation.setInterpolator(openInterpolator);
             }
-            currentSheetAnimation.setStartDelay(waitingKeyboard ? 0 : 20);
-            currentSheetAnimation.setInterpolator(openInterpolator);
+            if (SharedConfig.animationsEnabled()) {
+                currentSheetAnimation.setStartDelay(waitingKeyboard ? 0 : 20);
+                currentSheetAnimation.setInterpolator(openInterpolator);
+            }
             int finalAccount = currentAccount;
             notificationsLocker.lock();
             currentSheetAnimation.addListener(new AnimatorListenerAdapter() {
@@ -2024,7 +2030,9 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
                 appendOpenAnimator(false, animators);
                 currentSheetAnimation.playTogether(animators);
 
-                if (transitionFromRight) {
+                if (!SharedConfig.animationsEnabled()) {
+                    currentSheetAnimation.setDuration(duration = 0);
+                } else if (transitionFromRight) {
                     currentSheetAnimation.setDuration(200);
                     currentSheetAnimation.setInterpolator(CubicBezierInterpolator.DEFAULT);
                 } else {

@@ -46,6 +46,9 @@ public class BuildVars {
 
     public static boolean USE_LEGACY_SYSTEM_INSETS = false;
 
+    // Master kill-switch for Stories product feature. Keep false for SimpleTG fork.
+    public static boolean STORIES = false;
+
 
     static {
         if (ApplicationLoader.applicationContext != null) {

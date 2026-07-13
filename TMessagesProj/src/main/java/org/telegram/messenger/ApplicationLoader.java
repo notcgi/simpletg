@@ -320,6 +320,15 @@ public class ApplicationLoader extends Application {
 
         NativeLoader.initNativeLibs(ApplicationLoader.applicationContext);
 
+        // E-ink: collapse all ValueAnimator / ViewPropertyAnimator durations to instant.
+        try {
+            java.lang.reflect.Method method = android.animation.ValueAnimator.class.getDeclaredMethod("setDurationScale", float.class);
+            method.setAccessible(true);
+            method.invoke(null, 0f);
+        } catch (Throwable ignore) {
+        }
+        SharedConfig.setAnimationsEnabled(false);
+
         try {
             ConnectionsManager.native_setJava(false);
         } catch (UnsatisfiedLinkError error) {

@@ -43,8 +43,8 @@ public class DialogsItemAnimator extends SimpleItemAnimator {
     private int topClip;
     private int bottomClip;
 
-    private final static int deleteDuration = 180;
-    private final static int changeDuration = 180;
+    private final static int deleteDuration = 0; // e-ink: no list item animations
+    private final static int changeDuration = 0;
 
     private static class MoveInfo {
         public ViewHolder holder;

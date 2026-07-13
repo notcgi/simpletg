@@ -319,6 +319,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private final WindowInsetsStateHolder windowInsetsStateHolder = new WindowInsetsStateHolder(this::checkInsets);
 
     private boolean canShowFilterTabsView;
+    private boolean dialogFiltersUpdatePending;
     private int initialSearchType = -1;
 
     private final String ACTION_MODE_SEARCH_DIALOGS_TAG = "search_dialogs_action_mode";
@@ -1039,7 +1040,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     storiesAlpha = 1f - Utilities.clamp(rightSlidingProgress / 0.5f, 1f, 0f);
                 }
                 if (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE) {
-                    tabsYOffset -= (1f - animatorFilterTabsVisible.getFloatValue()) * filterTabsView.getMeasuredHeight();
+                    final float tabsVisibleFactor = !SharedConfig.animationsEnabled()
+                            ? (canShowFilterTabsView ? 1f : 0f)
+                            : animatorFilterTabsVisible.getFloatValue();
+                    tabsYOffset -= (1f - tabsVisibleFactor) * filterTabsView.getMeasuredHeight();
                 }
                 if (fragmentSearchField != null) {
                     fragmentSearchField.setTranslationY(lerp(scrollYOffset + tabsYOffset, -dp(hasStories ? DialogStoriesCell.HEIGHT_IN_DP : 0), rightSlidingProgress) + getSearchFieldAdditionOffset());
@@ -2768,9 +2772,22 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private MainTabsActivityController mainTabsActivityController;
+    private boolean mainTabsChatsTabVisible = true;
 
     public void setMainTabsActivityController(MainTabsActivityController controller) {
         mainTabsActivityController = controller;
+    }
+
+    public void setMainTabsChatsTabVisible(boolean visible) {
+        if (mainTabsChatsTabVisible == visible) {
+            return;
+        }
+        mainTabsChatsTabVisible = visible;
+        if (visible) {
+            updateFloatingButtonVisibility(false);
+        } else {
+            hideDialogsFloatingButtons();
+        }
     }
 
 
@@ -2895,6 +2912,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         loadDialogs(getAccountInstance());
         getMessagesController().getStoriesController().loadAllStories();
         getMessagesController().loadPinnedDialogs(folderId, 0, null);
+        if (getMessagesController().dialogFiltersLoaded && getMessagesController().getDialogFilters().size() > 1) {
+            dialogFiltersUpdatePending = true;
+        }
         if (databaseMigrationHint != null && !getMessagesStorage().isDatabaseMigrationInProgress()) {
             View localView = databaseMigrationHint;
             if (localView.getParent() != null) {
@@ -2915,8 +2935,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
 
         BirthdayController.getInstance(currentAccount).check();
-        additionNavigationBarHeight = hasMainTabs ? dp(MAIN_TABS_HEIGHT_WITH_MARGINS) : 0;
-        additionFloatingButtonOffset = hasMainTabs ? dp(DialogsActivity.MAIN_TABS_HEIGHT + DialogsActivity.MAIN_TABS_MARGIN) : 0;
+        additionNavigationBarHeight = 0;
+        additionFloatingButtonOffset = 0;
 
         return true;
     }
@@ -5066,12 +5086,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
 
         if (filterTabsView != null) {
-            BlurredBackgroundDrawable filterTabsViewBackground = iBlur3FactoryLiquidGlass.create(filterTabsView, BlurredBackgroundProviderImpl.topPanel(resourceProvider));
-            filterTabsViewBackground.setRadius(dp(18));
-            filterTabsViewBackground.setPadding(dp(6.666f));
             filterTabsView.setPadding(0, dp(7), 0, dp(7));
-            filterTabsView.setBlurredBackground(filterTabsViewBackground);
+            if (Theme.EINK_MODE || !SharedConfig.animationsEnabled()) {
+                filterTabsView.setBackground(Theme.createRoundRectDrawable(dp(18), getThemedColor(Theme.key_windowBackgroundWhite)));
+            } else {
+                BlurredBackgroundDrawable filterTabsViewBackground = iBlur3FactoryLiquidGlass.create(filterTabsView, BlurredBackgroundProviderImpl.topPanel(resourceProvider));
+                filterTabsViewBackground.setRadius(dp(18));
+                filterTabsViewBackground.setPadding(dp(6.666f));
+                filterTabsView.setBlurredBackground(filterTabsViewBackground);
+            }
             contentView.addView(filterTabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36 + 7 + 7, Gravity.TOP, 4, 0, 4, 0));
+            scheduleFilterTabsSync();
         }
 
         if (fragmentSearchField != null) {
@@ -5527,6 +5552,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         checkUi_mainTabsVisible();
         checkUi_forwardCommentFieldVisible();
         checkUi_searchFieldStyle();
+        checkUi_filterTabsVisible();
 
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, this::onApplyWindowInsets);
         return fragmentView;
@@ -6716,9 +6742,86 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
-    private void updateFilterTabs(boolean force, boolean animated) {
-        if (filterTabsView == null || inPreviewMode || searchIsShowed || (rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment())) {
+    private boolean requestedRemoteFiltersForTabs;
+
+    private void scheduleFilterTabsSync() {
+        if (onlySelect || folderId != 0) {
             return;
+        }
+        final int[] delays = {0, 100, 300, 800, 2000};
+        for (int delay : delays) {
+            AndroidUtilities.runOnUIThread(this::syncFilterTabsState, delay);
+        }
+    }
+
+    private void syncFilterTabsState() {
+        if (filterTabsView == null) {
+            dialogFiltersUpdatePending = true;
+            FileLog.d("FilterTabs sync: filterTabsView=null, pending=true");
+            return;
+        }
+        if (inPreviewMode || searchIsShowed || (rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment())) {
+            FileLog.d("FilterTabs sync: skipped preview=" + inPreviewMode + " search=" + searchIsShowed
+                    + " right=" + (rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment()));
+            return;
+        }
+        final ArrayList<MessagesController.DialogFilter> filters = getMessagesController().getDialogFilters();
+        final int size = filters == null ? -1 : filters.size();
+        FileLog.d("FilterTabs sync: filters=" + size
+                + " loaded=" + getMessagesController().dialogFiltersLoaded
+                + " userFiltersLoaded=" + getUserConfig().filtersLoaded
+                + " canShow=" + canShowFilterTabsView
+                + " tabsVis=" + (filterTabsView.getVisibility() == View.VISIBLE)
+                + " tabsAlpha=" + filterTabsView.getAlpha()
+                + " tabsCount=" + filterTabsView.getTabsCount());
+        if (filters == null || size <= 1) {
+            if (!requestedRemoteFiltersForTabs && getUserConfig().isClientActivated()) {
+                requestedRemoteFiltersForTabs = true;
+                FileLog.d("FilterTabs sync: forcing loadRemoteFilters(true)");
+                getMessagesController().loadRemoteFilters(true);
+            }
+            return;
+        }
+        dialogFiltersUpdatePending = false;
+        updateFilterTabs(true, false);
+        if (!SharedConfig.animationsEnabled() && canShowFilterTabsView) {
+            forceFilterTabsShown();
+        }
+        FileLog.d("FilterTabs sync: after update canShow=" + canShowFilterTabsView
+                + " tabsVis=" + (filterTabsView.getVisibility() == View.VISIBLE)
+                + " tabsAlpha=" + filterTabsView.getAlpha()
+                + " tabsCount=" + filterTabsView.getTabsCount());
+    }
+
+    private void forceFilterTabsShown() {
+        if (filterTabsView == null || !canShowFilterTabsView || searchIsShowed) {
+            return;
+        }
+        animatorFilterTabsVisible.forceValue(true, 1f);
+        filterTabsView.setAlpha(1f);
+        filterTabsView.setScaleX(1f);
+        filterTabsView.setScaleY(1f);
+        filterTabsView.setVisibility(View.VISIBLE);
+        updateContextViewPosition();
+        if (viewPages != null && viewPages.length > 0 && viewPages[0] != null && viewPages[0].listView != null) {
+            viewPages[0].listView.requestLayout();
+        }
+        if (fragmentView != null) {
+            fragmentView.requestLayout();
+            fragmentView.invalidate();
+        }
+    }
+
+    private void updateFilterTabs(boolean force, boolean animated) {
+        if (filterTabsView == null) {
+            dialogFiltersUpdatePending = true;
+            return;
+        }
+        if (inPreviewMode || searchIsShowed || (rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment())) {
+            return;
+        }
+        if (!SharedConfig.animationsEnabled()) {
+            animated = false;
         }
         if (filterOptions != null) {
             filterOptions.dismiss();
@@ -6726,7 +6829,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         final ArrayList<MessagesController.DialogFilter> filters = getMessagesController().getDialogFilters();
         if (filters.size() > 1) {
-            if (force || filterTabsView.getVisibility() != View.VISIBLE) {
+            if (force || !canShowFilterTabsView || filterTabsView.getVisibility() != View.VISIBLE || filterTabsView.getAlpha() < 0.99f) {
                 boolean animatedUpdateItems = animated;
                 if (filterTabsView.getVisibility() != View.VISIBLE) {
                     animatedUpdateItems = false;
@@ -6838,6 +6941,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
             }
         }
+        if (canShowFilterTabsView && fragmentView != null && !searchIsShowed) {
+            checkUi_filterTabsVisible();
+            if (!SharedConfig.animationsEnabled()) {
+                forceFilterTabsShown();
+            }
+        }
     }
 
     @Override
@@ -6910,6 +7019,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         if (searchViewPager != null) {
             searchViewPager.onResume();
+        }
+        if (!onlySelect && folderId == 0) {
+            scheduleFilterTabsSync();
         }
         updateFloatingButtonVisibility(true);
         final boolean tosAccepted;
@@ -7241,6 +7353,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             storyHint.show();
         }
         updateFloatingButtonVisibility(true);
+        if (!onlySelect && folderId == 0) {
+            scheduleFilterTabsSync();
+        }
         AndroidUtilities.runOnUIThread(this::createSearchViewPager, 200);
     }
 
@@ -7587,10 +7702,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (isPaused || databaseMigrationHint != null) {
             animated = false;
         }
+        if (!SharedConfig.animationsEnabled()) {
+            animated = false;
+            animatorFilterTabsVisible.forceValue(canShowFilterTabsView, canShowFilterTabsView ? 1f : 0f);
+            checkUi_filterTabsVisible();
+            return;
+        }
         if (searchIsShowed) {
             return;
         }
         animatorFilterTabsVisible.setValue(canShowFilterTabsView, animated);
+        if (canShowFilterTabsView && animatorFilterTabsVisible.getFloatValue() < 1f) {
+            animatorFilterTabsVisible.forceValue(true, 1f);
+        }
+        checkUi_filterTabsVisible();
     }
 
     private void setSearchAnimationProgress(float progress, boolean full) {
@@ -8644,7 +8769,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateFloatingButtonVisibility(boolean animated) {
+        if (hasMainTabs && !mainTabsChatsTabVisible) {
+            hideDialogsFloatingButtons();
+            return;
+        }
         final boolean isVisible = !(onlySelect && initialDialogsType != 10 || folderId != 0 || inPreviewMode || (searching && !onlySelect) || floatingButtonHidden);
+        animated = animated && SharedConfig.animationsEnabled();
 
         if (floatingButton3 != null) {
             floatingButton3.setButtonVisible(isVisible, animated);
@@ -10491,7 +10621,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 finishFragment();
             }
         } else if (id == NotificationCenter.dialogFiltersUpdated) {
-            updateFilterTabs(true, true);
+            scheduleFilterTabsSync();
         } else if (id == NotificationCenter.filterSettingsUpdated) {
             showFiltersHint();
         } else if (id == NotificationCenter.newSuggestionsAvailable) {
@@ -10552,6 +10682,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         } else if (id == NotificationCenter.onDatabaseOpened) {
             checkSuggestClearDatabase();
+            if (!onlySelect && folderId == 0) {
+                scheduleFilterTabsSync();
+            }
         } else if (id == NotificationCenter.userEmojiStatusUpdated) {
             updateStatus((TLRPC.User) args[0], true);
         } else if (id == NotificationCenter.currentUserPremiumStatusChanged) {
@@ -12481,19 +12614,18 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     public void updateStoriesVisibility(boolean animated) {
-        // Stories removed: never show dialogs strip.
-        hasStories = false;
-        hasOnlySlefStories = false;
-        dialogStoriesCellVisible = false;
-        animateToHasStories = false;
-        progressToDialogStoriesCell = 0;
-        if (dialogStoriesCell != null) {
-            dialogStoriesCell.setVisibility(View.GONE);
-        }
-        if (fragmentView != null) {
-            fragmentView.invalidate();
-        }
-        if (true) {
+        if (!BuildVars.STORIES) {
+            hasStories = false;
+            hasOnlySlefStories = false;
+            dialogStoriesCellVisible = false;
+            animateToHasStories = false;
+            progressToDialogStoriesCell = 0;
+            if (dialogStoriesCell != null) {
+                dialogStoriesCell.setVisibility(View.GONE);
+            }
+            if (fragmentView != null) {
+                fragmentView.invalidate();
+            }
             return;
         }
         if (dialogStoriesCell == null || storiesVisibilityAnimator != null || rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment() || searchIsShowed || actionBar == null || actionBar.isActionModeShowed() || onlySelect) {
@@ -13252,8 +13384,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void openStoriesRecorder() {
-        // Stories removed.
-        if (true) {
+        if (!BuildVars.STORIES) {
             return;
         }
         if (!storiesEnabled) {
@@ -13353,29 +13484,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public boolean canParentTabsSlide(MotionEvent ev, boolean forward) {
-        if (searchIsShowed || rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment()) {
-            return false;
-        }
-        if (blurredView != null && blurredView.getVisibility() == View.VISIBLE) {
-            return false;
-        }
-        if (filterTabsView != null && filterTabsView.isEditing()) {
-            return false;
-        }
-
-        final boolean isActionBarTouch = ev.getY() < actionBar.getMeasuredHeight();
-        if (isActionBarTouch) {
-            return true;
-        }
-
-        final boolean isFirstTab = filterTabsView == null || filterTabsView.getTabsCount() < 2 || filterTabsView.getCurrentTabId() == filterTabsView.getFirstTabId();
-        final boolean isLastTab = filterTabsView == null || filterTabsView.getTabsCount() < 2 || filterTabsView.getCurrentTabId() == filterTabsView.getLastTabId();
-        final int chatSwipeAction = SharedConfig.getChatSwipeAction(currentAccount);
-        if (forward) {
-            return isLastTab && !isFirstTab;
-        } else {
-            return isFirstTab;
-        }
+        return false;
     }
 
     private void showItemOptions() {
@@ -13392,6 +13501,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
 
         if (!isArchive()) {
+            io.add(R.drawable.msg_contacts, getString(R.string.MainTabsContacts), () -> {
+                Bundle args = new Bundle();
+                args.putBoolean("needPhonebook", true);
+                presentFragment(new ContactsActivity(args));
+            });
+            io.add(R.drawable.msg_settings_old, getString(R.string.Settings), () -> {
+                presentFragment(new SettingsActivity());
+            });
+            io.add(R.drawable.msg_openprofile, getString(R.string.MainTabsProfile), () -> {
+                Bundle args = new Bundle();
+                args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
+                args.putBoolean("my_profile", true);
+                presentFragment(new ProfileActivity(args));
+            });
             io.addGap();
             io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> {
                 Bundle args = new Bundle();
@@ -13429,12 +13552,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     }
                 }
             }
-            if (getUserConfig().showCallsTab) {
-                io.add(R.drawable.msg_settings_old, getString(R.string.Settings), () -> {
-                    presentFragment(new SettingsActivity());
-                });
-            }
-
             if (proxyMenuSubItem != null) {
                 proxyMenuSubItem.setOnClickListener(v -> {
                     io.dismiss();
@@ -13551,7 +13668,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public void onFactorChangeFinished(int id, float finalFactor, FactorAnimator callee) {
-        if (id == ANIMATOR_ID_SPEED_BUTTON_VISIBLE && speedItem != null) {
+        if (id == ANIMATOR_ID_FILTER_TABS_VISIBLE) {
+            checkUi_filterTabsVisible();
+        } else if (id == ANIMATOR_ID_SPEED_BUTTON_VISIBLE && speedItem != null) {
             final AnimatedVectorDrawable drawable = (AnimatedVectorDrawable) speedItem.getIconView().getDrawable();
             if (animatorSpeedButtonVisible.getValue()) {
                 drawable.start();
@@ -13653,12 +13772,19 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private float getFilterTabsVisibilityFactor(boolean includeSearch) {
         final float factor1 = includeSearch ? (1f - animatorSearchVisible.getFloatValue()) : 1f;
         final float factor2 = 1f - getRightSlidingProgress();
-        final float factor3 = animatorFilterTabsVisible.getFloatValue();
+        final float factor3 = !SharedConfig.animationsEnabled()
+                ? (canShowFilterTabsView ? 1f : 0f)
+                : animatorFilterTabsVisible.getFloatValue();
         return factor1 * factor2 * factor3;
     }
 
     private void checkUi_filterTabsVisible() {
-        final float factor = getFilterTabsVisibilityFactor(true);
+        final float factor;
+        if (!SharedConfig.animationsEnabled()) {
+            factor = (canShowFilterTabsView && !searchIsShowed) ? 1f : 0f;
+        } else {
+            factor = getFilterTabsVisibilityFactor(true);
+        }
         if (filterTabsView != null) {
             final boolean alphaChanged = filterTabsView.getAlpha() != factor;
 
@@ -13676,9 +13802,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void checkUi_mainTabsVisible() {
-        final boolean mainTabsVisible = !searching && (blurredView == null || blurredView.getBackground() == null || blurredView.getAlpha() < 0.01f || blurredView.getVisibility() == View.GONE);
         if (mainTabsActivityController != null) {
-            mainTabsActivityController.setTabsVisible(mainTabsVisible);
+            mainTabsActivityController.setTabsVisible(false);
         }
     }
 

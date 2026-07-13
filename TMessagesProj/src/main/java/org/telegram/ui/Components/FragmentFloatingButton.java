@@ -19,6 +19,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RawRes;
 
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.utils.ViewOutlineProviderImpl;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
@@ -103,11 +104,11 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
     }
 
     public void setProgressVisible(boolean visible, boolean animated) {
-        animatorProgressVisible.setValue(visible, animated);
+        animatorProgressVisible.setValue(visible, animated && SharedConfig.animationsEnabled());
     }
 
     public void setButtonVisible(boolean visible, boolean animated) {
-        animatorButtonVisible.setValue(visible, animated);
+        animatorButtonVisible.setValue(visible, animated && SharedConfig.animationsEnabled());
     }
 
     public boolean getButtonVisible() {

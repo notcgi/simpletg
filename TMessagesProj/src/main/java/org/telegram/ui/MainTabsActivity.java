@@ -100,7 +100,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     private static final int ANIMATOR_ID_TABS_VISIBLE = 0;
     private final BoolAnimator animatorTabsVisible = new BoolAnimator(ANIMATOR_ID_TABS_VISIBLE,
-        this, CubicBezierInterpolator.EASE_OUT_QUINT, 380, true);
+        this, CubicBezierInterpolator.EASE_OUT_QUINT, 380, false);
 
 
     private IUpdateLayout updateLayout;
@@ -633,7 +633,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 pendingFolderId = null;
             }
         }
+        checkUi_dialogsFloatingButtons();
+    }
 
+    private void checkUi_dialogsFloatingButtons() {
+        if (dialogsActivity == null || viewPager == null) {
+            return;
+        }
+        dialogsActivity.setMainTabsChatsTabVisible(viewPager.getPositionAnimated() < 0.5f);
     }
 
     @Override
@@ -650,6 +657,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         checkUi_fadeView();
         blur3_invalidateBlur();
+        checkUi_dialogsFloatingButtons();
     }
 
 

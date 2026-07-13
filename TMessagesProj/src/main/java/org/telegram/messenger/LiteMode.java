@@ -103,18 +103,8 @@ public class LiteMode {
         if (!loaded) {
             loadPreference();
         }
-        if (!ignorePowerSaving && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (getBatteryLevel() <= powerSaverLevel && powerSaverLevel > 0) {
-                if (!lastPowerSaverApplied) {
-                    onPowerSaverApplied(lastPowerSaverApplied = true);
-                }
-                return PRESET_POWER_SAVER;
-            }
-            if (lastPowerSaverApplied) {
-                onPowerSaverApplied(lastPowerSaverApplied = false);
-            }
-        }
-        return value;
+        // E-ink: permanently disable all LiteMode animation/effects flags.
+        return PRESET_POWER_SAVER;
     }
 
     private static int lastBatteryLevelCached = -1;
@@ -148,14 +138,18 @@ public class LiteMode {
 
     public static boolean isEnabled(int flag) {
         if (flag == FLAG_CHAT_FORUM_TWOCOLUMN && AndroidUtilities.isTablet()) {
-            // always enabled for tablets
+            // always enabled for tablets (layout, not decorative animation)
             return true;
         }
-        return (getValue() & preprocessFlag(flag)) > 0;
+        // E-ink: all animation / autoplay / effect flags forced off.
+        return false;
     }
 
     public static boolean isEnabledSetting(int flag) {
-        return (getValue(true) & flag) > 0;
+        if (flag == FLAG_CHAT_FORUM_TWOCOLUMN && AndroidUtilities.isTablet()) {
+            return true;
+        }
+        return false;
     }
 
     public static void toggleFlag(int flag) {
@@ -163,13 +157,13 @@ public class LiteMode {
     }
 
     public static void toggleFlag(int flag, boolean enabled) {
-        setAllFlags(enabled ? getValue(true) | flag : getValue(true) & ~flag);
+        // E-ink: ignore user toggles; keep all flags off.
+        setAllFlags(PRESET_POWER_SAVER);
     }
 
     public static void setAllFlags(int flags) {
-        // in settings it is already handled. would you handle it? 🫵
-        // onFlagsUpdate(value, flags);
-        value = flags;
+        // E-ink: permanently force power-saver (all animation flags off).
+        value = PRESET_POWER_SAVER;
         savePreference();
     }
 
@@ -277,12 +271,14 @@ public class LiteMode {
         }
 
         int prevValue = value;
-        value = preferences.getInt("lite_mode6", defaultValue);
+        value = PRESET_POWER_SAVER; // e-ink: force all lite animation flags off
         if (loaded) {
             onFlagsUpdate(prevValue, value);
         }
         powerSaverLevel = preferences.getInt("lite_mode_battery_level", batteryDefaultValue);
         loaded = true;
+        // Persist forced-off flags so settings UI stays consistent.
+        preferences.edit().putInt("lite_mode6", PRESET_POWER_SAVER).apply();
     }
 
     public static void savePreference() {

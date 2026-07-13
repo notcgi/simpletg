@@ -140,13 +140,8 @@ public class LiteModeSettingsActivity extends BaseFragment {
                 updateValues();
             } else if (item.viewType == VIEW_TYPE_SWITCH2) {
                 if (item.type == SWITCH_TYPE_SMOOTH_TRANSITIONS) {
-                    SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-                    boolean animations = preferences.getBoolean("view_animations", true);
-                    SharedPreferences.Editor editor = preferences.edit();
-                    editor.putBoolean("view_animations", !animations);
-                    SharedConfig.setAnimationsEnabled(!animations);
-                    editor.commit();
-                    ((TextCell) view).setChecked(!animations);
+                    // E-ink: animations permanently disabled.
+                    return;
                 }
             }
         });
@@ -278,9 +273,7 @@ public class LiteModeSettingsActivity extends BaseFragment {
         items.add(Item.asSwitch(R.drawable.photo_star, LocaleController.getString(R.string.LiteOptionsParticles), LiteMode.FLAG_PARTICLES));
         items.add(Item.asInfo(""));
 
-        items.add(Item.asSwitch(LocaleController.getString(R.string.LiteSmoothTransitions), SWITCH_TYPE_SMOOTH_TRANSITIONS));
-        items.add(Item.asInfo(LocaleController.getString("LiteSmoothTransitionsInfo")));
-
+        // E-ink: smooth transitions permanently off — no toggle.
         adapter.setItems(oldItems, items);
     }
 
