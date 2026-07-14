@@ -218,6 +218,7 @@ import org.telegram.ui.Components.Bulletin;
 import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.ChatActivityEnterView;
 import org.telegram.ui.Components.ChatAvatarContainer;
+import org.telegram.ui.Components.CircularProgressDrawable;
 import org.telegram.ui.Components.CombinedDrawable;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.DialogsItemAnimator;
@@ -737,6 +738,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private Long statusDrawableGiftId;
     private Drawable logoDrawable;
     private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable statusDrawable;
+    private CircularProgressDrawable connectionSpinner;
+    private boolean showingConnectionSpinner;
     private AnimatedStatusView animatedStatusView;
     public RightSlidingDialogContainer rightSlidingDialogContainer;
 
@@ -2955,6 +2958,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (statusDrawable == null || actionBar == null) {
             return;
         }
+        if (showingConnectionSpinner) {
+            return;
+        }
         Long emojiStatusId = UserObject.getEmojiStatusDocumentId(user);
         statusDrawableGiftId = null;
         if (emojiStatusId != null) {
@@ -3135,6 +3141,19 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public void setTitleOverlayText(String title, int titleId, Runnable action) {
+        if (Theme.EINK_MODE) {
+            setConnectionSpinnerVisible(title != null);
+            // Keep the normal title; connection status is shown as a spinner instead of words.
+            super.setTitleOverlayText(null, 0, null);
+            if (actionBar != null && selectAnimatedEmojiDialog != null && selectAnimatedEmojiDialog.getContentView() instanceof SelectAnimatedEmojiDialog) {
+                SimpleTextView textView = actionBar.getTitleTextView();
+                ((SelectAnimatedEmojiDialog) selectAnimatedEmojiDialog.getContentView()).setScrimDrawable(textView != null && textView.getRightDrawable() == statusDrawable ? statusDrawable : null, textView);
+            }
+            if (dialogStoriesCell != null) {
+                dialogStoriesCell.setTitleOverlayText(null, 0);
+            }
+            return;
+        }
         super.setTitleOverlayText(title, titleId, action);
         if (actionBar != null && selectAnimatedEmojiDialog != null && selectAnimatedEmojiDialog.getContentView() instanceof SelectAnimatedEmojiDialog) {
             SimpleTextView textView = actionBar.getTitleTextView();
@@ -3142,6 +3161,34 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         if (dialogStoriesCell != null) {
             dialogStoriesCell.setTitleOverlayText(title, titleId);
+        }
+    }
+
+    private void setConnectionSpinnerVisible(boolean visible) {
+        if (showingConnectionSpinner == visible) {
+            return;
+        }
+        showingConnectionSpinner = visible;
+        if (statusDrawable == null || actionBar == null) {
+            return;
+        }
+        if (visible) {
+            if (connectionSpinner == null) {
+                connectionSpinner = new CircularProgressDrawable(dp(16), dp(2), getThemedColor(Theme.key_actionBarDefaultTitle));
+            } else {
+                connectionSpinner.setColor(getThemedColor(Theme.key_actionBarDefaultTitle));
+                connectionSpinner.reset();
+            }
+            statusDrawable.set(connectionSpinner, false);
+            statusDrawable.setParticles(false, false);
+            actionBar.setRightDrawableOnClick(null);
+            SimpleTextView titleView = actionBar.getTitleTextView();
+            if (titleView != null) {
+                connectionSpinner.setCallback(titleView);
+                titleView.invalidate();
+            }
+        } else {
+            updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
         }
     }
 

@@ -124,6 +124,15 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
     private final AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable emojiStatusDrawable;
     private final AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable botVerificationDrawable;
 
+    private CircularProgressDrawable connectionSpinner;
+    private boolean showingConnectionSpinner;
+    private CharSequence lastTitleText;
+    private boolean lastTitleScam;
+    private boolean lastTitleFake;
+    private boolean lastTitleVerified;
+    private boolean lastTitlePremium;
+    private TLRPC.EmojiStatus lastTitleEmojiStatus;
+
     protected boolean useAnimatedSubtitle() {
         return false;
     }
@@ -931,6 +940,20 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
     }
 
     public void setTitle(CharSequence value, boolean scam, boolean fake, boolean verified, boolean premium, TLRPC.EmojiStatus emojiStatus, boolean animated) {
+        lastTitleText = value;
+        lastTitleScam = scam;
+        lastTitleFake = fake;
+        lastTitleVerified = verified;
+        lastTitlePremium = premium;
+        lastTitleEmojiStatus = emojiStatus;
+        if (showingConnectionSpinner) {
+            if (value != null) {
+                value = Emoji.replaceEmoji(value, titleTextView.getPaint().getFontMetricsInt(), false);
+            }
+            titleTextView.setText(value);
+            checkActionBar(animated);
+            return;
+        }
         if (value != null) {
             value = Emoji.replaceEmoji(value, titleTextView.getPaint().getFontMetricsInt(), false);
         }
@@ -1574,6 +1597,15 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
     }
 
     private void updateCurrentConnectionState() {
+        if (Theme.EINK_MODE) {
+            final boolean connecting =
+                    currentConnectionState == ConnectionsManager.ConnectionStateWaitingForNetwork
+                            || currentConnectionState == ConnectionsManager.ConnectionStateConnecting
+                            || currentConnectionState == ConnectionsManager.ConnectionStateUpdating
+                            || currentConnectionState == ConnectionsManager.ConnectionStateConnectingToProxy;
+            setConnectionSpinnerVisible(connecting);
+            return;
+        }
         String title = null;
         if (currentConnectionState == ConnectionsManager.ConnectionStateWaitingForNetwork) {
             title = getString(R.string.WaitingForNetwork);
@@ -1630,6 +1662,32 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
                     animatedSubtitleTextView.setTag(Theme.key_actionBarDefaultSubtitle);
                 }
             }
+        }
+        checkActionBar(true);
+    }
+
+    private void setConnectionSpinnerVisible(boolean visible) {
+        if (showingConnectionSpinner == visible) {
+            return;
+        }
+        showingConnectionSpinner = visible;
+        if (titleTextView == null || emojiStatusDrawable == null) {
+            return;
+        }
+        if (visible) {
+            if (connectionSpinner == null) {
+                connectionSpinner = new CircularProgressDrawable(dp(16), dp(2), getThemedColor(Theme.key_actionBarDefaultTitle));
+            } else {
+                connectionSpinner.setColor(getThemedColor(Theme.key_actionBarDefaultTitle));
+                connectionSpinner.reset();
+            }
+            connectionSpinner.setCallback(titleTextView);
+            emojiStatusDrawable.set(connectionSpinner, false);
+            emojiStatusDrawable.setColor(getThemedColor(Theme.key_actionBarDefaultTitle));
+            titleTextView.setRightDrawable(emojiStatusDrawable);
+            titleTextView.invalidate();
+        } else {
+            setTitle(lastTitleText, lastTitleScam, lastTitleFake, lastTitleVerified, lastTitlePremium, lastTitleEmojiStatus, false);
         }
         checkActionBar(true);
     }

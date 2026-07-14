@@ -1135,6 +1135,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     private static final float BADGE_DRAWABLE_OFFSET = (BADGE_SIZE - BADGE_DRAWABLE_SIZE) / 2f;
     private static final boolean SHOW_DIALOG_TIME = false;
     private static final boolean SHOW_DIALOG_STATUS_ICONS = false;
+    private static final boolean SHOW_DIALOG_UNREAD_COUNT = false;
 
     public void buildLayout() {
         if (isTransitionSupport) {
@@ -1310,7 +1311,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
             if (customDialog.unread_count != 0) {
                 drawCount = true;
-                countString = String.format("%d", customDialog.unread_count);
+                countString = SHOW_DIALOG_UNREAD_COUNT ? String.format("%d", customDialog.unread_count) : "";
             } else {
                 drawCount = false;
             }
@@ -1995,11 +1996,11 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         if (unreadCount > mentionCount) {
                             drawCount = true;
                             drawMention = false;
-                            countString = String.format("%d", unreadCount + mentionCount);
+                            countString = SHOW_DIALOG_UNREAD_COUNT ? String.format("%d", unreadCount + mentionCount) : "";
                         } else {
                             drawCount = false;
                             drawMention = true;
-                            mentionString = String.format("%d", unreadCount + mentionCount);
+                            mentionString = SHOW_DIALOG_UNREAD_COUNT ? String.format("%d", unreadCount + mentionCount) : "";
                         }
                     } else {
                         drawCount = false;
@@ -2013,7 +2014,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         showChecks = false;
                     } else if (unreadCount != 0) {
                         drawCount = true;
-                        countString = String.format("%d", unreadCount);
+                        countString = SHOW_DIALOG_UNREAD_COUNT ? String.format("%d", unreadCount) : "";
                     } else if (markUnread) {
                         drawCount = true;
                         countString = "";
@@ -3542,7 +3543,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     countAnimator.setDuration(430);
                     countAnimator.setInterpolator(CubicBezierInterpolator.DEFAULT);
                 }
-                if (drawCount && drawCount2 && countLayout != null) {
+                if (SHOW_DIALOG_UNREAD_COUNT && drawCount && drawCount2 && countLayout != null) {
                     String oldStr = String.format("%d", oldUnreadCount);
                     String newStr = String.format("%d", unreadCount);
 
@@ -4453,17 +4454,21 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                             canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, paint);
                         }
                         int savedMentionTextColor = Theme.dialogs_countTextPaint2.getColor();
-                        if (Theme.EINK_MODE) {
+                        if (Theme.EINK_MODE || !SHOW_DIALOG_UNREAD_COUNT) {
                             int colorKey = drawCounterMuted && folderId != 0 ? Theme.key_chats_unreadCounterMuted : Theme.key_chats_unreadCounter;
                             Theme.dialogs_countTextPaint2.setColor(Theme.getColor(colorKey, resourcesProvider));
                         }
                         Theme.dialogs_countTextPaint2.setAlpha((int) ((1.0f - reorderIconProgress) * 255));
 
-                        canvas.save();
-                        canvas.translate(mentionLeft + dp(BADGE_TEXT_PADDING), countTop + dp(4));
-                        mentionLayout.draw(canvas);
-                        canvas.restore();
-                        if (Theme.EINK_MODE) {
+                        if (!SHOW_DIALOG_UNREAD_COUNT) {
+                            drawMarkUnreadDot(canvas, rect.centerX(), rect.centerY());
+                        } else {
+                            canvas.save();
+                            canvas.translate(mentionLeft + dp(BADGE_TEXT_PADDING), countTop + dp(4));
+                            mentionLayout.draw(canvas);
+                            canvas.restore();
+                        }
+                        if (Theme.EINK_MODE || !SHOW_DIALOG_UNREAD_COUNT) {
                             Theme.dialogs_countTextPaint2.setColor(savedMentionTextColor);
                         }
                     } else {
@@ -5143,7 +5148,19 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         }
     }
 
+    private Paint markUnreadDotPaint;
+
     private void drawMarkUnreadDot(Canvas canvas, float cx, float cy) {
+        if (Theme.EINK_MODE || !SHOW_DIALOG_UNREAD_COUNT) {
+            if (markUnreadDotPaint == null) {
+                markUnreadDotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                markUnreadDotPaint.setStyle(Paint.Style.FILL);
+            }
+            markUnreadDotPaint.setColor(Theme.dialogs_countTextPaint2.getColor());
+            markUnreadDotPaint.setAlpha(Theme.dialogs_countTextPaint2.getAlpha());
+            canvas.drawCircle(cx, cy, dp(4f), markUnreadDotPaint);
+            return;
+        }
         Paint.FontMetrics fm = Theme.dialogs_countTextPaint2.getFontMetrics();
         float baseline = cy - (fm.ascent + fm.descent) / 2f;
         Paint.Align oldAlign = Theme.dialogs_countTextPaint2.getTextAlign();
@@ -5186,7 +5203,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 restoreCountTextPaint = true;
             } else {
                 paint = drawCounterMuted || currentDialogFolderId != 0 ? Theme.dialogs_countGrayPaint : Theme.dialogs_countPaint;
-                if (Theme.EINK_MODE) {
+                if (Theme.EINK_MODE || !SHOW_DIALOG_UNREAD_COUNT) {
                     int colorKey = drawCounterMuted || currentDialogFolderId != 0 ? Theme.key_chats_unreadCounterMuted : Theme.key_chats_unreadCounter;
                     Theme.dialogs_countTextPaint2.setColor(Theme.getColor(colorKey, resourcesProvider));
                     restoreCountTextPaint = true;
@@ -5210,7 +5227,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 }
 
                 drawUnreadCounterBackground(canvas, paint, rect, drawBubble, outline);
-                if (Theme.EINK_MODE && markUnread && unreadCount == 0) {
+                if (!SHOW_DIALOG_UNREAD_COUNT && (unreadCount != 0 || markUnread)) {
+                    drawMarkUnreadDot(canvas, rect.centerX(), rect.centerY());
+                } else if (Theme.EINK_MODE && markUnread && unreadCount == 0) {
                     drawMarkUnreadDot(canvas, rect.centerX(), rect.centerY());
                 } else if (drawLayout != null) {
                     canvas.save();

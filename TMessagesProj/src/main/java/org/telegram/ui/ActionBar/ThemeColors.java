@@ -850,10 +850,12 @@ public class ThemeColors {
             defaultColors[key_chat_outTimeSelectedText] = 0xff999999;
             defaultColors[key_chat_inTimeText] = 0xff999999;
             defaultColors[key_chat_inTimeSelectedText] = 0xff999999;
-            defaultColors[key_chat_outSentCheck] = 0xff888888;
-            defaultColors[key_chat_outSentCheckSelected] = 0xff888888;
-            defaultColors[key_chat_outSentCheckRead] = 0xff666666;
-            defaultColors[key_chat_outSentCheckReadSelected] = 0xff666666;
+            defaultColors[key_chat_outSentCheck] = 0xffaaaaaa;
+            defaultColors[key_chat_outSentCheckSelected] = 0xffaaaaaa;
+            defaultColors[key_chat_outSentCheckRead] = 0xff999999;
+            defaultColors[key_chat_outSentCheckReadSelected] = 0xff999999;
+            defaultColors[key_chats_unreadCounter] = 0xff444444;
+            defaultColors[key_chats_unreadCounterMuted] = 0xff888888;
             defaultColors[key_chat_outSentClock] = 0xff999999;
             defaultColors[key_chat_outSentClockSelected] = 0xff999999;
             defaultColors[key_chat_inSentClock] = 0xff999999;

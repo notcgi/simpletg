@@ -1690,6 +1690,13 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         if (!allowOverlayTitle || parentFragment.parentLayout == null) {
             return;
         }
+        // E-ink: never replace the toolbar title with Connecting/Updating/etc. words.
+        // DialogsActivity shows a spinner on the premium status icon instead.
+        if (Theme.EINK_MODE && title != null) {
+            title = null;
+            titleId = 0;
+            action = null;
+        }
         overlayTitleToSet[0] = title;
         overlayTitleToSet[1] = titleId;
         overlayTitleToSet[2] = action;
