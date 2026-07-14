@@ -47,10 +47,10 @@ public class BuildVars {
     public static boolean USE_LEGACY_SYSTEM_INSETS = false;
 
     // Master kill-switch for Stories product feature. Keep false for SimpleTG fork.
-    public static boolean STORIES = false;
+    public static final boolean STORIES = false;
 
     // Master kill-switch for Stars balance, gifts, and premium gift UI. Keep false for SimpleTG e-ink fork.
-    public static boolean STARS_GIFTS = false;
+    public static final boolean STARS_GIFTS = false;
 
 
     static {
